@@ -1,0 +1,58 @@
+{
+  "name": "haizhu-browser",
+  "version": "1.0.0",
+  "description": "Haizhu Browser — a developer & geek oriented high-performance all-in-one browser (debug sniffer, proxy, fingerprint spoofing, extensions, userscripts, resource grabber, AI agent).",
+  "main": "src/main/main.js",
+  "author": "HaizhuAI",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^38.7.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.haizhu.browser",
+    "productName": "Haizhu Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "resources/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Haizhu Browser",
+      "artifactName": "HaizhuBrowser-${version}-win-setup-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "HaizhuBrowser-${version}-win-portable-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "artifactName": "HaizhuBrowser-${version}-linux-${arch}.${ext}"
+    },
+    "compression": "normal"
+  }
+}

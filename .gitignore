@@ -1,0 +1,20 @@
+node_modules/
+dist/
+out/
+*.log
+.DS_Store
+_analysis/
+*.user.js
+!scripts/*.user.js
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.idea/
+
+# APK samples / reverse-engineering inputs (not for distribution)
+/*.apk
+/*.apks
+/*.zip
+etest*.js
+boot*.js

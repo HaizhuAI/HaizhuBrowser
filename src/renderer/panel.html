@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; script-src 'self'">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="panel">
+  <div id="ptabs">
+    <div class="pt active" data-p="net">Capture</div>
+    <div class="pt" data-p="res">Resources</div>
+    <div class="pt" data-p="ck">Cookies</div>
+    <div class="pt" data-p="us">Scripts</div>
+    <div class="pt" data-p="ext">Extensions</div>
+    <div class="pt" data-p="px">Proxy</div>
+    <div class="pt" data-p="fp">Fingerprint</div>
+    <div class="pt" data-p="ai">AI Agent</div>
+  </div>
+  <div id="pbody">
+    <!-- NETWORK CAPTURE -->
+    <div class="page active" id="p-net">
+      <div class="row">
+        <button id="capToggle">Start capture</button>
+        <button id="capClear">Clear</button>
+        <button id="capHar">Export HAR</button>
+        <input id="capFilter" placeholder="filter url/type" style="flex:1">
+      </div>
+      <table class="grid"><thead><tr><th>Method</th><th>URL</th><th>Status</th><th>Type</th><th>Size</th><th>ms</th></tr></thead>
+      <tbody id="capRows"></tbody></table>
+      <div id="capDetail" class="hidden"><h3 class="sec">Request detail</h3><pre class="dump" id="capDump"></pre></div>
+    </div>
+    <!-- RESOURCE SNIFFER -->
+    <div class="page" id="p-res">
+      <div class="row"><button id="resRefresh">Refresh</button><span class="dim">Sniffed media on this tab (m3u8 / mpd / video / audio)</span></div>
+      <table class="grid"><thead><tr><th>Type</th><th>URL</th><th>Size</th><th></th></tr></thead><tbody id="resRows"></tbody></table>
+      <h3 class="sec">Downloads</h3><div id="dlJobs"></div>
+    </div>
+    <!-- COOKIES -->
+    <div class="page" id="p-ck">
+      <div class="row"><button id="ckRefresh">Refresh</button><button id="ckClear">Clear all site data</button><span class="dim" id="ckScope"></span></div>
+      <table class="grid"><thead><tr><th>Name</th><th>Value</th><th>Domain</th><th>Expires</th><th>Flags</th><th></th></tr></thead><tbody id="ckRows"></tbody></table>
+    </div>
+    <!-- USERSCRIPTS -->
+    <div class="page" id="p-us">
+      <div class="row">
+        <button id="usNew">New script</button>
+        <input id="usUrl" placeholder="install from URL (.user.js)" style="flex:1"><button id="usInstall">Install</button>
+      </div>
+      <div id="usList"></div>
+      <div id="usEditor" class="hidden"><h3 class="sec">Edit script</h3><textarea class="editor" id="usCode" spellcheck="false"></textarea>
+      <div class="row"><button id="usSave">Save</button><button id="usCancel">Cancel</button></div></div>
+    </div>
+    <!-- EXTENSIONS -->
+    <div class="page" id="p-ext">
+      <div class="row"><button id="extInstall">Install from .zip/.crx</button></div>
+      <div id="extList"></div>
+    </div>
+    <!-- PROXY -->
+    <div class="page" id="p-px">
+      <div class="row"><select id="pxActive" style="flex:1"></select><button id="pxApply">Apply</button></div>
+      <h3 class="sec">Profiles</h3><div id="pxList"></div>
+      <h3 class="sec">Add profile</h3>
+      <div class="kv">
+        <div>Name</div><input id="pxName">
+        <div>Type</div><select id="pxMode"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks5">SOCKS5</option><option value="socks4">SOCKS4</option><option value="pac">PAC</option><option value="system">System</option></select>
+        <div>Host:Port</div><div class="row"><input id="pxHost" placeholder="127.0.0.1" style="flex:2"><input id="pxPort" placeholder="8080" style="flex:1"></div>
+        <div>User/Pass</div><div class="row"><input id="pxUser" style="flex:1"><input id="pxPass" type="password" style="flex:1"></div>
+        <div>PAC URL</div><input id="pxPac" placeholder="https://.../proxy.pac">
+        <div>Bypass</div><input id="pxBypass" placeholder="&lt;local&gt;;*.internal">
+      </div>
+      <button id="pxAdd">Add profile</button>
+    </div>
+    <!-- FINGERPRINT -->
+    <div class="page" id="p-fp">
+      <div class="row"><label><input type="checkbox" id="fpOn"> Enable spoofing</label>
+      <select id="fpMode"><option value="per-session">Per-session persona</option><option value="per-domain">Per-domain persona</option></select>
+      <button id="fpRotate">Rotate now</button></div>
+      <div id="fpPersona"></div>
+      <p class="dim">Spoofs navigator.*, screen.*, canvas, WebGL renderer, audio, timezone, WebRTC hints. Applied at document-start in the main world.</p>
+    </div>
+    <!-- AI -->
+    <div class="page" id="p-ai">
+      <div class="row">
+        <select id="aiProv" style="flex:1"></select>
+        <select id="aiModel"></select>
+        <button id="aiCfg">+API</button>
+      </div>
+      <div class="chat" style="height:calc(100% - 90px)">
+        <div class="msgs" id="aiMsgs"></div>
+        <div class="input"><textarea id="aiIn" placeholder="Ask anything. Agent can read cookies, captures, DOM and automate the page."></textarea>
+        <button id="aiSend">Send</button><button id="aiAgent">Agent</button></div>
+      </div>
+      <div id="aiCfgBox" class="hidden">
+        <h3 class="sec">Add OpenAI-compatible endpoint</h3>
+        <div class="kv">
+          <div>Name</div><input id="epName">
+          <div>Base URL</div><input id="epBase" placeholder="https://api.openai.com/v1">
+          <div>API key</div><input id="epKey">
+          <div>Model</div><input id="epModel" placeholder="gpt-4o-mini">
+        </div>
+        <button id="epAdd">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="panel.js"></script>
+</body>
+</html>

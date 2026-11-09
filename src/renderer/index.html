@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; script-src 'self'">
+<link rel="stylesheet" href="style.css">
+<style>body{background:var(--bg2)}</style>
+</head>
+<body>
+<div id="chrome">
+  <div id="toolbar">
+    <button class="icon" id="bBack" title="Back">&#10094;</button>
+    <button class="icon" id="bFwd" title="Forward">&#10095;</button>
+    <button class="icon" id="bReload" title="Reload">&#8635;</button>
+  </div>
+  <div id="tabstrip"></div>
+  <button class="icon" id="bNew" title="New tab (Ctrl+T)">&#65291;</button>
+  <button class="icon" id="bInc" title="New anonymous tab">&#128065;</button>
+  <div id="omnibox-wrap">
+    <input id="omnibox" placeholder="Search or enter address — Ctrl+L" spellcheck="false" autocomplete="off">
+  </div>
+  <div id="toolbar">
+    <button class="icon" id="bCap" title="Toggle capture (packet sniffer)">&#9673;</button>
+    <button class="icon" id="bPanel" title="Dev panel (F12)">&#9881;</button>
+    <button class="icon" id="bDevtools" title="Page DevTools">&#128295;</button>
+    <button class="icon" id="bMenu" title="Menu">&#9776;</button>
+  </div>
+  <div id="winctl">
+    <button id="wMin" title="Minimize">&#8211;</button>
+    <button id="wMax" title="Maximize">&#9634;</button>
+    <button id="wClose" title="Close">&#10005;</button>
+  </div>
+</div>
+<script src="chrome.js"></script>
+</body>
+</html>

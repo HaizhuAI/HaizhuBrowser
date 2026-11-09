@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0d1117">
+
+    <!-- top chrome -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="6dp"
+        android:background="#161b22">
+
+        <ImageButton android:id="@+id/bBack" android:layout_width="34dp" android:layout_height="34dp"
+            android:src="@android:drawable/ic_media_previous" android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="back" android:tint="#e6edf3" />
+        <ImageButton android:id="@+id/bFwd" android:layout_width="34dp" android:layout_height="34dp"
+            android:src="@android:drawable/ic_media_next" android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="fwd" android:tint="#e6edf3" />
+        <ImageButton android:id="@+id/bReload" android:layout_width="34dp" android:layout_height="34dp"
+            android:src="@android:drawable/ic_popup_sync" android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="reload" android:tint="#e6edf3" />
+        <EditText android:id="@+id/omnibox" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="36dp" android:hint="Search or URL" android:textColorHint="#8b949e"
+            android:textColor="#e6edf3" android:textSize="13sp" android:singleLine="true"
+            android:imeOptions="actionGo" android:background="#0d1117" android:paddingHorizontal="10dp"
+            android:inputType="textUri" />
+        <TextView android:id="@+id/tTabs" android:layout_width="36dp" android:layout_height="34dp"
+            android:gravity="center" android:text="1" android:textColor="#e6edf3"
+            android:background="#1c2330" android:layout_marginStart="6dp" />
+        <ImageButton android:id="@+id/bMenu" android:layout_width="34dp" android:layout_height="34dp"
+            android:src="@android:drawable/ic_menu_more" android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="menu" android:tint="#e6edf3" />
+    </LinearLayout>
+
+    <!-- tab strip -->
+    <HorizontalScrollView android:id="@+id/tabScroll"
+        android:layout_width="match_parent" android:layout_height="38dp"
+        android:background="#161b22" android:scrollbars="none">
+        <LinearLayout android:id="@+id/tabStrip" android:orientation="horizontal"
+            android:layout_width="wrap_content" android:layout_height="match_parent"
+            android:gravity="center_vertical" android:paddingHorizontal="4dp" />
+    </HorizontalScrollView>
+
+    <!-- content + panel -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <FrameLayout android:id="@+id/webContainer"
+            android:layout_width="match_parent" android:layout_height="match_parent" />
+
+        <!-- dev panel overlay -->
+        <LinearLayout android:id="@+id/panel" android:visibility="gone"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:background="#e60d1117">
+
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="40dp"
+                android:scrollbars="none" android:background="#161b22">
+                <LinearLayout android:id="@+id/panelTabs" android:orientation="horizontal"
+                    android:layout_width="wrap_content" android:layout_height="match_parent"
+                    android:gravity="center_vertical" />
+            </HorizontalScrollView>
+
+            <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+                <LinearLayout android:id="@+id/panelBody" android:orientation="vertical"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:padding="10dp" />
+            </ScrollView>
+
+            <LinearLayout android:id="@+id/aiBar" android:visibility="gone"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:padding="8dp" android:background="#161b22">
+                <EditText android:id="@+id/aiInput" android:layout_width="0dp" android:layout_weight="1"
+                    android:layout_height="40dp" android:hint="Ask / agent command"
+                    android:textColor="#e6edf3" android:textColorHint="#8b949e" android:textSize="13sp"
+                    android:background="#0d1117" android:paddingHorizontal="10dp" />
+                <Button android:id="@+id/aiSend" android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="AI" />
+                <Button android:id="@+id/aiAgent" android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="Agent" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

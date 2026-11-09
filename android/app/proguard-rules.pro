@@ -1,0 +1,2 @@
+-keep class com.haizhu.browser.** { *; }
+-keepattributes JavascriptInterface
