@@ -88,5 +88,10 @@
   "env.reseedConfirm": "为该环境轮换指纹身份？cookie/存储保留，身份变更。",
   "env.delConfirm": "删除此环境及其全部存储数据？",
   "env.empty": "暂无环境。创建一个以隔离指纹、代理与存储。",
-  "tb.restore": "还原"
+  "tb.restore": "还原",
+  "menu.bmbar": "书签栏",
+  "menu.bmadd": "将此页加入书签",
+  "menu.bmnewtab": "在新标签页打开",
+  "menu.bmdel": "删除",
+  "bm.add": "收藏此页 (Ctrl+D)"
 }

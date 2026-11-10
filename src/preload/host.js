@@ -123,6 +123,7 @@ contextBridge.exposeInMainWorld('hz', {
     onWinState: fn => on('win-state', fn),
     opendownloads: () => invoke('app:opendownloads'),
     i18n: () => invoke('app:i18n'),
+    onBmBar: fn => on('bmbar-state', fn),
     theme: () => invoke('app:theme'),
     onTheme: fn => on('theme-changed', fn),
     onI18n: fn => on('i18n-changed', fn)
@@ -132,6 +133,15 @@ contextBridge.exposeInMainWorld('hz', {
     set: (k, v) => invoke('settings:set', k, v)
   },
   // test-only: only resolves when the main process registered dev hooks (HZ_EVAL)
+  bm: {
+    list: () => invoke('bm:list'),
+    add: b => invoke('bm:add', b),
+    del: id => invoke('bm:del', id),
+    togglebar: () => invoke('bm:bartoggle'),
+    barstate: () => invoke('bm:barstate'),
+    menu: id => send('bm:menu', id),
+    onChange: fn => on('bm-changed', fn)
+  },
   dev: {
     click: (x, y) => invoke('dev:click', x, y),
     dblclick: (x, y) => invoke('dev:dblclick', x, y),

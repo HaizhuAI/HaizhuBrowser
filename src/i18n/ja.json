@@ -88,5 +88,10 @@
   "env.reseedConfirm": "この環境の指紋をローテーションしますか？Cookie/ストレージは保持されます。",
   "env.delConfirm": "この環境と全データを削除しますか？",
   "env.empty": "環境がありません。作成して指紋・プロキシ・ストレージを分離しましょう。",
-  "tb.restore": "元に戻す"
+  "tb.restore": "元に戻す",
+  "menu.bmbar": "ブックマークバー",
+  "menu.bmadd": "このページをブックマーク",
+  "menu.bmnewtab": "新しいタブで開く",
+  "menu.bmdel": "削除",
+  "bm.add": "このページをブックマーク (Ctrl+D)"
 }

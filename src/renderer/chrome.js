@@ -49,6 +49,7 @@ function render() {
     else if (/^http:/i.test(u)) { sec.innerHTML = WARN_SVG; sec.className = 'warn-c'; sec.title = tr('omni.insecure'); }
     else { sec.innerHTML = INFO_SVG; sec.className = ''; sec.title = u.startsWith('file:') ? tr('omni.local') : tr('omni.internal'); }
   }
+  updateStar();
 }
 window.__pageSvg = () => PAGE_SVG;
 
@@ -141,6 +142,8 @@ if (hz.ui.onMenuCmd) hz.ui.onMenuCmd(id => {
     case 'print': hz.page.print(); break;
     case 'clearcookies': hz.ck.clear(); break;
     case 'opendownloads': hz.app.opendownloads(); break;
+    case 'bmbar': toggleBmBar(); break;
+    case 'bmadd': $('#omni-star').click(); break;
     case 'settings': hz.tabs.open('settings'); break;
   }
 });
@@ -159,6 +162,8 @@ document.addEventListener('keydown', e => {
     const i = tabs.findIndex(t => t.id === activeId);
     if (i >= 0 && tabs.length > 1) hz.tabs.activate(tabs[(i + 1) % tabs.length].id);
   }
+  else if (e.ctrlKey && e.key === 'd') { e.preventDefault(); $('#omni-star').click(); }
+  else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleBmBar(); }
 });
 
 // live updates from main
@@ -167,6 +172,61 @@ hz.tabs.onAdded(t => { refresh(); });
 hz.tabs.onClosed(id => { refresh(); });
 hz.tabs.onActivated((id, t) => { activeId = id; const i = tabs.findIndex(x => x.id === id); if (i >= 0) tabs[i] = t; render(); });
 if (hz.panel.onState) hz.panel.onState(open => $('#bPanel').classList.toggle('active', !!open));
+
+// ---- bookmarks bar ----
+let bms = [];
+const bmrow = $('#bmrow');
+const STAR_OFF = '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const STAR_ON = '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+
+function renderBm() {
+  bmrow.innerHTML = bms.map(b => `
+    <button class="bm-btn" data-id="${esc(b.id)}" title="${esc(b.url)}">
+      ${b.fav ? `<img src="${esc(b.fav)}" onerror="this.outerHTML='<span class=\\'bm-fb\\'>${esc((b.title || '?')[0])}</span>'">` : `<span class="bm-fb">${esc((b.title || '?')[0])}</span>`}
+      <span class="t">${esc(b.title)}</span>
+    </button>`).join('');
+}
+bmrow.addEventListener('click', e => {
+  const b = e.target.closest('.bm-btn');
+  if (!b) return;
+  const bm = bms.find(x => x.id === b.dataset.id);
+  if (bm) hz.tabs.navigate(bm.url);
+});
+bmrow.addEventListener('auxclick', e => {
+  const b = e.target.closest('.bm-btn');
+  if (b && e.button === 1) {
+    const bm = bms.find(x => x.id === b.dataset.id);
+    if (bm) hz.tabs.open(bm.url);
+  }
+});
+bmrow.addEventListener('contextmenu', e => {
+  const b = e.target.closest('.bm-btn');
+  if (b) { e.preventDefault(); hz.bm.menu(b.dataset.id); }
+});
+
+async function toggleBmBar() {
+  const on = await hz.bm.togglebar();
+  bmrow.classList.toggle('off', !on);
+}
+function updateStar() {
+  const active = tabs.find(t => t.id === activeId);
+  const u = active && active.url || '';
+  const marked = !!u && !isNtp(u) && bms.some(b => b.url === u);
+  $('#omni-star').classList.toggle('on', marked);
+  $('#omni-star').innerHTML = marked ? STAR_ON : STAR_OFF;
+}
+$('#omni-star').onclick = async () => {
+  const active = tabs.find(t => t.id === activeId);
+  if (!active || !active.url || isNtp(active.url)) return;
+  const ex = bms.find(b => b.url === active.url);
+  if (ex) bms = await hz.bm.del(ex.id);
+  else bms = await hz.bm.add({ title: active.title || active.url, url: active.url, fav: active.fav || '' });
+  renderBm(); updateStar();
+};
+hz.bm.list().then(l => { bms = l; renderBm(); updateStar(); });
+if (hz.bm.onChange) hz.bm.onChange(l => { bms = l; renderBm(); updateStar(); });
+if (hz.app.onBmBar) hz.app.onBmBar(on => bmrow.classList.toggle('off', !on));
+hz.bm.barstate && hz.bm.barstate().then(on => bmrow.classList.toggle('off', !on));
 
 // i18n + theme bootstrap and live updates
 hz.app.i18n().then(p => { STR = p.strings; applyI18n(); render(); });

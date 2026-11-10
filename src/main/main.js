@@ -26,6 +26,14 @@ app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_interface_only');
 
 const CHROME_H = 82;
+const BM_BAR_H = 28;
+const BM_SEED = [
+  { id: 'hz-img', title: '生图站', url: 'https://design.haizhuai.art', fav: 'https://design.haizhuai.art/favicon.ico' },
+  { id: 'hz-api', title: '中转站', url: 'https://api.haizhuai.art', fav: 'https://api.haizhuai.art/favicon.ico' },
+  { id: 'hz-blog', title: 'HaizhuAI中文社区', url: 'https://blog.haizhuai.art', fav: 'https://blog.haizhuai.art/favicon.ico' },
+  { id: 'hz-nav', title: 'HaizhuAI导航页', url: 'https://start.haizhuai.art', fav: 'https://start.haizhuai.art/favicon.ico' }
+];
+const chromeH = () => CHROME_H + (store.get('bmbar', true) ? BM_BAR_H : 0);
 const NTP_URL = 'haizhu://newtab';
 // privileged internal scheme for the new-tab page (must run pre-ready)
 protocol.registerSchemesAsPrivileged([{
@@ -38,6 +46,7 @@ let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
+let layoutAllRef = null;
 
 function broadcast(channel, ...args) {
   if (chromeView && !chromeView.webContents.isDestroyed()) chromeView.webContents.send(channel, ...args);
@@ -100,10 +109,12 @@ function createWindow() {
   chromeView.webContents.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.contentView.addChildView(chromeView);
 
-  const layoutAll = () => {
+  const layoutAll = layoutAllRef = () => {
     const [w, h] = win.getContentSize();
-    chromeView.setBounds({ x: 0, y: 0, width: w, height: CHROME_H });
+    chromeView.setBounds({ x: 0, y: 0, width: w, height: chromeH() });
+    tabs.setChromeHeight(chromeH());
     tabs.layout();
+    layoutPanel(w, h);
   };
   win.on('resize', layoutAll);
   layoutAll();
@@ -133,7 +144,7 @@ function closePanel() {
   broadcast('panel-state', false);
 }
 function layoutPanel(w, h) {
-  if (panelView) panelView.setBounds({ x: w - 420, y: CHROME_H, width: 420, height: h - CHROME_H });
+  if (panelView) panelView.setBounds({ x: w - 420, y: chromeH(), width: 420, height: h - chromeH() });
 }
 
 // ---------- history ----------
@@ -198,6 +209,9 @@ function registerIpc() {
       { label: t('menu.zoomout'), accelerator: 'Ctrl+-', click: () => send('zoomout') },
       { label: t('menu.zoomreset'), accelerator: 'Ctrl+0', click: () => send('zoomreset') },
       { label: t('menu.print'), accelerator: 'Ctrl+P', click: () => send('print') },
+      { type: 'separator' },
+      { label: t('menu.bmbar'), type: 'checkbox', checked: store.get('bmbar', true), accelerator: 'Ctrl+Shift+B', click: () => send('bmbar') },
+      { label: t('menu.bmadd'), accelerator: 'Ctrl+D', click: () => send('bmadd') },
       { type: 'separator' },
       { label: t('menu.cleardata'), click: () => send('clearcookies') },
       { label: t('menu.downloads'), click: () => send('opendownloads') },
@@ -357,6 +371,31 @@ function registerIpc() {
   // history / misc
   ipcMain.handle('hist:list', (e, limit) => history.list(limit));
   ipcMain.handle('hist:clear', () => { history.clear(); return true; });
+  // ---- bookmarks ----
+  if (!store.get('bm.seeded')) { store.set('bookmarks', BM_SEED); store.set('bm.seeded', true); }
+  const bmSave = list => { store.set('bookmarks', list); broadcast('bm-changed', list); return list; };
+  ipcMain.handle('bm:list', () => store.get('bookmarks', []));
+  ipcMain.handle('bm:add', (e, b) => {
+    const list = store.get('bookmarks', []);
+    if (!list.some(x => x.url === b.url)) list.push({ id: 'bm' + Date.now().toString(36), title: b.title || b.url, url: b.url, fav: b.fav || '' });
+    return bmSave(list);
+  });
+  ipcMain.handle('bm:del', (e, id) => bmSave(store.get('bookmarks', []).filter(x => x.id !== id)));
+  ipcMain.handle('bm:bartoggle', () => {
+    store.set('bmbar', !store.get('bmbar', true));
+    layoutAllRef && layoutAllRef();
+    broadcast('bmbar-state', store.get('bmbar'));
+    return store.get('bmbar');
+  });
+  ipcMain.handle('bm:barstate', () => store.get('bmbar', true));
+  ipcMain.on('bm:menu', (e, id) => {
+    const bm = (store.get('bookmarks', []) || []).find(x => x.id === id);
+    if (!bm) return;
+    Menu.buildFromTemplate([
+      { label: i18n.t('menu.bmnewtab'), click: () => tabs.openTab(bm.url, true) },
+      { label: i18n.t('menu.bmdel'), click: () => bmSave(store.get('bookmarks', []).filter(x => x.id !== id)) }
+    ]).popup({ window: win });
+  });
   ipcMain.handle('app:version', () => app.getVersion());
   ipcMain.handle('win:ctl', (e, op) => {
     if (!win || win.isDestroyed()) return { max: false };

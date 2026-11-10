@@ -88,5 +88,10 @@
   "env.reseedConfirm": "為該環境輪換指紋身份？cookie/儲存保留，身份變更。",
   "env.delConfirm": "刪除此環境及其全部儲存資料？",
   "env.empty": "尚無環境。建立一個以隔離指紋、代理與儲存。",
-  "tb.restore": "還原"
+  "tb.restore": "還原",
+  "menu.bmbar": "書籤列",
+  "menu.bmadd": "將此頁加入書籤",
+  "menu.bmnewtab": "在新分頁開啟",
+  "menu.bmdel": "刪除",
+  "bm.add": "收藏此頁 (Ctrl+D)"
 }

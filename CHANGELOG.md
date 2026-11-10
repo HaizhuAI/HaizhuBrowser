@@ -2,6 +2,17 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.5.2] — 2025-11-10
+
+### New / 新增
+- **书签栏（Bookmarks bar）** — Chrome 式第三行书签条，默认显示；`Ctrl+Shift+B` / 菜单勾选切换显隐（窗口高度随动 82↔110）；左键当前页打开、中键新标签、右键原生菜单（新标签打开/删除）
+- **默认书签种子** — 首次启动预置：生图站 `design.haizhuai.art`、中转站 `api.haizhuai.art`、HaizhuAI中文社区 `blog.haizhuai.art`、HaizhuAI导航页 `start.haizhuai.art`（favicon 自动加载，失败回退首字母圆标）
+- **星标收藏** — omnibox 内星按钮 / `Ctrl+D` 收藏当前页（已收藏显示实心，再点移除）；菜单同步入口
+- 四语言菜单/提示键（en/简中/繁中/日）
+
+### Verified / 实测验收（打包产物 + 真人点击）
+- 4 种子渲染 ✓｜真点击书签导航到 design.haizhuai.art ✓｜显隐切换 ✓｜星标加/删 count 4↔5 ✓
+
 ## [1.5.1] — 2025-11-10
 
 ### Fixed / 修复（severity-1：窗口控制全失效）

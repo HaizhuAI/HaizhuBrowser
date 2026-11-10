@@ -138,6 +138,29 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
 .wbtn:hover { background: var(--tab-hover); }
 .wbtn.close:hover { background: var(--close-hov); color: #fff; }
 
+/* --- row 3: bookmarks bar --- */
+#bmrow {
+  display: flex; align-items: center; gap: 2px; height: 28px;
+  padding: 0 10px; background: var(--chrome); overflow: hidden; flex: none;
+}
+#bmrow.off { display: none; }
+.bm-btn {
+  display: flex; align-items: center; gap: 6px; max-width: 180px;
+  height: 24px; padding: 0 9px; border: none; border-radius: 12px;
+  background: transparent; color: var(--fg2); font-size: 12px; cursor: pointer;
+  white-space: nowrap; flex: none;
+}
+.bm-btn:hover { background: var(--tab-hover); color: var(--fg); }
+.bm-btn img { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+.bm-btn .bm-fb {
+  width: 14px; height: 14px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: 9px; font-weight: 700;
+  background: var(--bg3); color: var(--fg2);
+}
+.bm-btn span.t { overflow: hidden; text-overflow: ellipsis; }
+#omni-star.on { color: var(--acc); }
+#omni-star.on svg path { fill: var(--acc); }
+
 /* --- row 2: toolbar --- */
 #toolbar {
   display: flex; align-items: center; gap: 3px; height: 46px;
