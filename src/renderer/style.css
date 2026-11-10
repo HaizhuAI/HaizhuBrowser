@@ -152,11 +152,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
 }
 .bm-btn:hover { background: var(--tab-hover); color: var(--fg); }
 .bm-btn img { width: 14px; height: 14px; border-radius: 3px; flex: none; }
-.bm-btn .bm-fb {
-  width: 14px; height: 14px; border-radius: 50%; flex: none;
-  display: grid; place-items: center; font-size: 9px; font-weight: 700;
-  background: var(--bg3); color: var(--fg2);
-}
+.bm-btn .bm-ic { display: flex; color: var(--acc); flex: none; }
 .bm-btn span.t { overflow: hidden; text-overflow: ellipsis; }
 #omni-star.on { color: var(--acc); }
 #omni-star.on svg path { fill: var(--acc); }

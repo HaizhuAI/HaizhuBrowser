@@ -178,14 +178,27 @@ let bms = [];
 const bmrow = $('#bmrow');
 const STAR_OFF = '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const STAR_ON = '<svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+// inline icon set — no network favicon guessing; clean glyphs per site type
+const BM_ICONS = {
+  image: '<svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="10" r="1.8" fill="currentColor"/><path d="M4.5 18l4.5-4.5 3 3 3.5-3.5 4 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  relay: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12l-3-3M20 15H8l3 3"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="13" cy="10.5" r="1" fill="currentColor"/><circle cx="17" cy="10.5" r="1" fill="currentColor"/></svg>',
+  compass: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" stroke-linejoin="round"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></svg>'
+};
+const bmIcon = b => b.fav ? `<img src="${esc(b.fav)}">` : `<span class="bm-ic">${BM_ICONS[b.icon] || BM_ICONS.globe}</span>`;
 
 function renderBm() {
   bmrow.innerHTML = bms.map(b => `
     <button class="bm-btn" data-id="${esc(b.id)}" title="${esc(b.url)}">
-      ${b.fav ? `<img src="${esc(b.fav)}" onerror="this.outerHTML='<span class=\\'bm-fb\\'>${esc((b.title || '?')[0])}</span>'">` : `<span class="bm-fb">${esc((b.title || '?')[0])}</span>`}
+      ${bmIcon(b)}
       <span class="t">${esc(b.title)}</span>
     </button>`).join('');
 }
+// img error events don't bubble — catch in capture phase and swap for globe icon
+bmrow.addEventListener('error', e => {
+  if (e.target.tagName === 'IMG') e.target.outerHTML = `<span class="bm-ic">${BM_ICONS.globe}</span>`;
+}, true);
 bmrow.addEventListener('click', e => {
   const b = e.target.closest('.bm-btn');
   if (!b) return;

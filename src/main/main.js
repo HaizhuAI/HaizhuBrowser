@@ -28,10 +28,10 @@ app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_
 const CHROME_H = 82;
 const BM_BAR_H = 28;
 const BM_SEED = [
-  { id: 'hz-img', title: '生图站', url: 'https://design.haizhuai.art', fav: 'https://design.haizhuai.art/favicon.ico' },
-  { id: 'hz-api', title: '中转站', url: 'https://api.haizhuai.art', fav: 'https://api.haizhuai.art/favicon.ico' },
-  { id: 'hz-blog', title: 'HaizhuAI中文社区', url: 'https://blog.haizhuai.art', fav: 'https://blog.haizhuai.art/favicon.ico' },
-  { id: 'hz-nav', title: 'HaizhuAI导航页', url: 'https://start.haizhuai.art', fav: 'https://start.haizhuai.art/favicon.ico' }
+  { id: 'hz-img', title: '生图站', url: 'https://design.haizhuai.art', icon: 'image' },
+  { id: 'hz-api', title: '中转站', url: 'https://api.haizhuai.art', icon: 'relay' },
+  { id: 'hz-blog', title: 'HaizhuAI中文社区', url: 'https://blog.haizhuai.art', icon: 'chat' },
+  { id: 'hz-nav', title: 'HaizhuAI导航页', url: 'https://start.haizhuai.art', icon: 'compass' }
 ];
 const chromeH = () => CHROME_H + (store.get('bmbar', true) ? BM_BAR_H : 0);
 const NTP_URL = 'haizhu://newtab';
@@ -373,6 +373,15 @@ function registerIpc() {
   ipcMain.handle('hist:clear', () => { history.clear(); return true; });
   // ---- bookmarks ----
   if (!store.get('bm.seeded')) { store.set('bookmarks', BM_SEED); store.set('bm.seeded', true); }
+  else { // migrate guessed /favicon.ico URLs on seed entries -> inline icons
+    const list = store.get('bookmarks', []);
+    let dirty = false;
+    for (const b of list) {
+      const seed = BM_SEED.find(s => s.id === b.id || s.url === b.url);
+      if (seed && b.fav && b.fav.endsWith('/favicon.ico')) { delete b.fav; b.icon = seed.icon; dirty = true; }
+    }
+    if (dirty) store.set('bookmarks', list);
+  }
   const bmSave = list => { store.set('bookmarks', list); broadcast('bm-changed', list); return list; };
   ipcMain.handle('bm:list', () => store.get('bookmarks', []));
   ipcMain.handle('bm:add', (e, b) => {
