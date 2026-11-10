@@ -16,6 +16,7 @@ const { ExtensionManager } = require('./extensions');
 const { AIModule, cookieApi, DUCK_MODELS, OpenAICompat } = require('./ai');
 const { TabManager } = require('./tabs');
 const { I18n } = require('./i18n');
+const { McpServer } = require('./mcp');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -42,7 +43,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -498,6 +499,12 @@ function registerIpc() {
     t.wc.setZoomFactor(Math.min(3, Math.max(0.25, z))); return true;
   });
   ipcMain.handle('app:opendownloads', () => { shell.openPath(app.getPath('downloads')); return true; });
+
+  // MCP server — external agents drive the browser over localhost HTTP/stdio
+  ipcMain.handle('mcp:state', () => mcp ? mcp.state() : { enabled: false, running: false });
+  ipcMain.handle('mcp:set', (e, cfg) => mcp ? mcp.applyConfig(cfg) : null);
+  ipcMain.handle('mcp:regen', () => mcp ? mcp.regenToken() : null);
+  ipcMain.handle('mcp:config', () => mcp ? mcp.clientConfig(mcp.installBridge()) : null);
 }
 
 app.whenReady().then(async () => {
@@ -618,6 +625,16 @@ app.whenReady().then(async () => {
     }
   });
   ai = new AIModule(store, null);
+
+  mcp = new McpServer(store, {
+    tabs, ai, captures, sniffer, m3u8, proxy, profiles, adblock, scripts,
+    history: l => history.list(l),
+    bookmarks: () => store.get('bookmarks', []),
+    applyNetworkStack,
+    userData: app.getPath('userData'),
+    version: app.getVersion()
+  });
+  if (store.get('mcp.enabled', false)) mcp.start();
 
   const ses = defaultSession();
   attachProto(ses);

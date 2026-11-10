@@ -16,6 +16,10 @@
 |---|---|
 | <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
 
+| MCP / 智能体接入（设置页） |  |
+|---|---|
+| <img src="docs/screenshots/mcp-settings.png" width="640"> |  |
+
 | 安卓 — 主界面 | 安卓 — 菜单 |
 |---|---|
 | <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
@@ -43,8 +47,62 @@
 | **主题** | 深色 / 浅色 / 跟随系统，全 UI 面生效 | 跟随系统深色 |
 | **多语言** | English / 简体中文 / 繁體中文 / 日本語——工具栏、菜单、面板、新标签页、设置页全覆盖 | 系统字符串 |
 | **新标签页** | Edge 式沉浸 NTP：必应每日壁纸、毛玻璃搜索、快捷瓷贴 | 简易 NTP |
-| **设置页** | `haizhu://settings`——外观、语言、启动、搜索引擎、隐私、关于 | — |
+| **设置页** | `haizhu://settings`——外观、语言、启动、搜索引擎、隐私、MCP、关于 | — |
+| **MCP 服务** | 内嵌 **Model Context Protocol** 端点——Claude Desktop / Codex / 任意 MCP 智能体可直接驱动整台浏览器：标签、导航、DOM、Cookie、抓包+HAR、资源嗅探、指纹环境、代理、广告拦截、油猴、AI | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
+
+## MCP —— 让任意智能体驱动浏览器
+
+海柱浏览器内嵌 **Model Context Protocol** 服务端，外部 AI 智能体
+（Claude Desktop、Codex、自研 Agent 等）可以远程完成网页导航、抓包分析、
+Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同套工具面。
+
+**开启：** `haizhu://settings` → **MCP / 智能体接入** → 打开开关。服务只绑定
+`127.0.0.1`，每次调用必须带 Bearer 令牌（自动生成、可重置）——不出本机。
+
+**两种接入方式：**
+
+- **stdio** —— 适用于把 MCP 服务作为子进程拉起的客户端（Claude Desktop /
+  Codex 等）。把设置页生成的配置粘进客户端的 `mcpServers`：
+
+  ```json
+  {
+    "mcpServers": {
+      "haizhu": {
+        "command": "node",
+        "args": ["C:\\Users\\<你>\\AppData\\Roaming\\Haizhu Browser\\mcp-stdio.js"],
+        "env": { "HZ_MCP_PORT": "8765", "HZ_MCP_TOKEN": "<设置页里的令牌>" }
+      }
+    }
+  }
+  ```
+
+  桥接脚本自动写入 `<userData>/mcp-stdio.js`，把逐行 JSON-RPC 转发进
+  运行中的浏览器（需 `PATH` 上有 `node`）。
+
+- **Streamable HTTP** —— 适用于直接支持 HTTP 传输的客户端：
+
+  ```json
+  { "mcpServers": { "haizhu": {
+    "type": "http",
+    "url": "http://127.0.0.1:8765/mcp",
+    "headers": { "Authorization": "Bearer <设置页里的令牌>" }
+  } } }
+  ```
+
+**工具面（36 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
+`activate_tab` / `navigate`（地址栏式 URL+搜索词归一化）/ `get_url` /
+`page_text` / `page_html` / `dom_query` / `click` / `fill` / `run_js` /
+`wait` / `screenshot`（真 PNG 图像块）/ `start_capture` / `stop_capture` /
+`network_log` / `request_body` / `har_export` / `resources` /
+`download_resource` / `list_cookies` / `set_cookie` / `delete_cookie` /
+`storage_get` / `list_profiles` / `launch_profile` / `profile_persona` /
+`proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
+`list_scripts` / `bookmarks` / `history` / `ai_chat`。
+
+典型智能体会话：`start_capture` → `navigate` → `network_log` →
+`request_body` → `har_export` 完成一次完整抓包；`dom_query` → `click` →
+`fill` → `screenshot` 完成页面自动化。
 
 ## 逆向渊源
 

@@ -113,5 +113,20 @@
   "ctx.savepage": "网页另存为…",
   "ctx.inspect": "检查",
   "ctx.copymedia": "复制媒体地址",
-  "ctx.openav": "在新标签页打开媒体"
+  "ctx.openav": "在新标签页打开媒体",
+  "set.mcp": "MCP / 智能体接入",
+  "set.mcp.enable": "启用 MCP 服务",
+  "set.mcp.desc": "通过 Model Context Protocol 把本浏览器开放给外部智能体——导航、抓包、Cookie、DOM 自动化、资源嗅探、指纹环境。",
+  "set.mcp.port": "端口",
+  "set.mcp.endpoint": "接入地址",
+  "set.mcp.token": "访问令牌",
+  "set.mcp.regen": "重新生成",
+  "set.mcp.note": "仅绑定 127.0.0.1，每次调用都需要令牌。",
+  "set.mcp.cfgstdio": "stdio 配置 — Claude Desktop / Codex / 多数 MCP 客户端",
+  "set.mcp.cfgstdio.d": "粘贴到客户端的 mcpServers 配置中，需 PATH 上有 node。",
+  "set.mcp.cfghttp": "HTTP 配置 — 支持 streamable HTTP 的客户端",
+  "set.mcp.copy": "复制",
+  "set.mcp.copied": "已复制",
+  "set.mcp.on": "运行中",
+  "set.mcp.off": "未运行"
 }

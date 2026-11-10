@@ -132,6 +132,12 @@ contextBridge.exposeInMainWorld('hz', {
     get: k => invoke('settings:get', k),
     set: (k, v) => invoke('settings:set', k, v)
   },
+  mcp: {
+    state: () => invoke('mcp:state'),
+    set: c => invoke('mcp:set', c),
+    regen: () => invoke('mcp:regen'),
+    config: () => invoke('mcp:config')
+  },
   // test-only: only resolves when the main process registered dev hooks (HZ_EVAL)
   bm: {
     list: () => invoke('bm:list'),

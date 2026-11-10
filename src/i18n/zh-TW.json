@@ -113,5 +113,20 @@
   "ctx.savepage": "網頁另存為…",
   "ctx.inspect": "檢查",
   "ctx.copymedia": "複製媒體網址",
-  "ctx.openav": "在新分頁開啟媒體"
+  "ctx.openav": "在新分頁開啟媒體",
+  "set.mcp": "MCP / 智慧體接入",
+  "set.mcp.enable": "啟用 MCP 服務",
+  "set.mcp.desc": "透過 Model Context Protocol 將本瀏覽器開放給外部智慧體——導航、抓包、Cookie、DOM 自動化、資源嗅探、指紋環境。",
+  "set.mcp.port": "連接埠",
+  "set.mcp.endpoint": "接入位址",
+  "set.mcp.token": "存取權杖",
+  "set.mcp.regen": "重新產生",
+  "set.mcp.note": "僅綁定 127.0.0.1，每次呼叫都需要權杖。",
+  "set.mcp.cfgstdio": "stdio 設定 — Claude Desktop / Codex / 多數 MCP 客戶端",
+  "set.mcp.cfgstdio.d": "貼到用戶端的 mcpServers 設定中，需 PATH 上有 node。",
+  "set.mcp.cfghttp": "HTTP 設定 — 支援 streamable HTTP 的客戶端",
+  "set.mcp.copy": "複製",
+  "set.mcp.copied": "已複製",
+  "set.mcp.on": "執行中",
+  "set.mcp.off": "未執行"
 }

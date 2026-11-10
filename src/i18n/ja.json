@@ -113,5 +113,20 @@
   "ctx.savepage": "名前を付けてページを保存…",
   "ctx.inspect": "検証",
   "ctx.copymedia": "メディアのアドレスをコピー",
-  "ctx.openav": "新しいタブでメディアを開く"
+  "ctx.openav": "新しいタブでメディアを開く",
+  "set.mcp": "MCP / エージェント",
+  "set.mcp.enable": "MCP サーバーを有効化",
+  "set.mcp.desc": "Model Context Protocol 経由で外部 AI エージェントにブラウザを公開——ナビゲーション、キャプチャ、Cookie、DOM 自動化、リソーススニッフィング、フィンガープリント環境。",
+  "set.mcp.port": "ポート",
+  "set.mcp.endpoint": "エンドポイント",
+  "set.mcp.token": "アクセストークン",
+  "set.mcp.regen": "再生成",
+  "set.mcp.note": "127.0.0.1 のみにバインド。全呼び出しにトークン必須。",
+  "set.mcp.cfgstdio": "stdio 設定 — Claude Desktop / Codex / ほぼ全ての MCP クライアント",
+  "set.mcp.cfgstdio.d": "クライアントの mcpServers 設定に貼り付け。PATH 上に node が必要。",
+  "set.mcp.cfghttp": "HTTP 設定 — streamable HTTP 対応クライアント",
+  "set.mcp.copy": "コピー",
+  "set.mcp.copied": "コピー済み",
+  "set.mcp.on": "実行中",
+  "set.mcp.off": "停止"
 }

@@ -95,6 +95,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/></svg>
       <span data-i18n="set.privacy">Privacy</span>
     </div>
+    <div class="sitem" data-s="mcp">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h7v4M14 17.5H7v-4"/></svg>
+      <span data-i18n="set.mcp">MCP / Agents</span>
+    </div>
     <div class="sitem" data-s="about">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></svg>
       <span data-i18n="set.about">About</span>
@@ -167,6 +171,40 @@
       <div class="card">
         <div class="lab" data-i18n="set.clearData">Clear browsing data</div>
         <button id="btnClear" data-i18n="set.clear">Clear now</button>
+      </div>
+    </section>
+
+    <section class="sect" id="s-mcp">
+      <h2 data-i18n="set.mcp">MCP / Agents</h2>
+      <div class="card">
+        <div class="swrow">
+          <div>
+            <div class="lab" data-i18n="set.mcp.enable">Enable MCP server</div>
+            <div class="desc" data-i18n="set.mcp.desc">Expose this browser to external AI agents over the Model Context Protocol — navigation, capture, cookies, DOM automation, sniffing, profiles.</div>
+          </div>
+          <label class="sw"><input type="checkbox" id="swMcp"><span class="tr"></span></label>
+        </div>
+        <div class="kv2" style="margin-top:12px">
+          <div data-i18n="set.mcp.port">Port</div>
+          <div><input class="full" id="inMcpPort" type="number" min="1" max="65535" style="max-width:120px"></div>
+          <div data-i18n="set.mcp.endpoint">Endpoint</div>
+          <div><code id="mcpUrl" style="font-size:12px"></code> <span id="mcpState" style="font-size:12px;color:var(--fg2)"></span></div>
+          <div data-i18n="set.mcp.token">Access token</div>
+          <div><code id="mcpToken" style="font-size:12px"></code>
+            <button id="btnMcpRegen" data-i18n="set.mcp.regen" style="margin-left:8px">Regenerate</button></div>
+        </div>
+        <div class="desc" style="margin-top:8px" data-i18n="set.mcp.note">Bound to 127.0.0.1 only — token required for every call.</div>
+      </div>
+      <div class="card">
+        <div class="lab" data-i18n="set.mcp.cfgstdio">stdio — Claude Desktop / Codex / most MCP clients</div>
+        <div class="desc" data-i18n="set.mcp.cfgstdio.d">Paste into the client's mcpServers config. Requires node on PATH.</div>
+        <textarea id="taCfgStdio" readonly rows="8" style="width:100%;font:11px var(--mono,monospace);background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
+        <button id="btnCfgStdio" data-i18n="set.mcp.copy" style="margin-top:8px">Copy</button>
+      </div>
+      <div class="card">
+        <div class="lab" data-i18n="set.mcp.cfghttp">HTTP — streamable-HTTP-capable clients</div>
+        <textarea id="taCfgHttp" readonly rows="8" style="width:100%;font:11px var(--mono,monospace);background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
+        <button id="btnCfgHttp" data-i18n="set.mcp.copy" style="margin-top:8px">Copy</button>
       </div>
     </section>
 

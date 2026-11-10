@@ -113,5 +113,20 @@
   "ctx.savepage": "Save page as…",
   "ctx.inspect": "Inspect",
   "ctx.copymedia": "Copy media address",
-  "ctx.openav": "Open audio/video in new tab"
+  "ctx.openav": "Open audio/video in new tab",
+  "set.mcp": "MCP / Agents",
+  "set.mcp.enable": "Enable MCP server",
+  "set.mcp.desc": "Expose this browser to external AI agents over the Model Context Protocol — navigation, capture, cookies, DOM automation, resource sniffing, fingerprint environments.",
+  "set.mcp.port": "Port",
+  "set.mcp.endpoint": "Endpoint",
+  "set.mcp.token": "Access token",
+  "set.mcp.regen": "Regenerate",
+  "set.mcp.note": "Bound to 127.0.0.1 only — token required for every call.",
+  "set.mcp.cfgstdio": "stdio config — Claude Desktop / Codex / most MCP clients",
+  "set.mcp.cfgstdio.d": "Paste into the client's mcpServers config. Requires node on PATH.",
+  "set.mcp.cfghttp": "HTTP config — streamable-HTTP-capable clients",
+  "set.mcp.copy": "Copy",
+  "set.mcp.copied": "Copied",
+  "set.mcp.on": "Running",
+  "set.mcp.off": "Stopped"
 }

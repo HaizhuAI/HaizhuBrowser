@@ -191,7 +191,10 @@ class AIModule {
       case 'stop_capture': await c.captures.get(wc).stop(); return 'stopped';
       case 'resources': return c.sniffer.list(wc.id).slice(0, 100);
       case 'run_js': {
-        const r = await wc.executeJavaScript(`(function(){ ${args.code} })()`, true);
+        // Accept expressions too — agents habitually pass `document.title`
+        let wrapped = `(function(){ ${args.code} })()`;
+        try { new Function(`return (${args.code})`); wrapped = `(function(){ return (${args.code}) })()`; } catch {}
+        const r = await wc.executeJavaScript(wrapped, true);
         return r === undefined ? '(undefined)' : JSON.stringify(r).slice(0, 20000);
       }
       case 'page_text': return (await wc.executeJavaScript('document.body ? document.body.innerText.slice(0,15000) : ""', true)) || '';
@@ -203,7 +206,7 @@ class AIModule {
       case 'screenshot': { const img = await wc.capturePage(); return img.toDataURL().slice(0, 100) + '... [screenshot ' + img.getSize().width + 'x' + img.getSize().height + ']'; }
       case 'list_scripts': return c.scripts.matchesFor(wc.getURL(), true).map(s => s.meta.name + ' v' + s.meta.version);
       case 'history': return c.history(args.limit || 50);
-      case 'storage_get': return await wc.executeJavaScript('Object.entries(localStorage).map(([k,v])=>({k,v:v.slice(0,200)}))', true);
+      case 'storage_get': return await wc.executeJavaScript('(function(){try{return Object.entries(localStorage).map(([k,v])=>({k,v:String(v).slice(0,200)}))}catch(e){return []}})()', true);
       default: return 'unknown tool ' + name;
     }
   }

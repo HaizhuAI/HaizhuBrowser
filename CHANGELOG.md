@@ -2,6 +2,28 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.7.0] — 2025-11-11
+
+### Added / 新增 — MCP 智能体接入（Windows + Linux 桌面版）
+- **内嵌 MCP 服务端** `src/main/mcp.js`：Streamable HTTP 端点 `http://127.0.0.1:<port>/mcp`（默认 8765），完整 JSON-RPC：`initialize`/`ping`/`tools/list`/`tools/call`/通知/批量/SSE 监听流；Bearer 令牌鉴权（自动生成、可重置），仅绑回环
+- **36 个工具**：标签/导航（omnibox 式 URL+搜索归一化）/页面文本与 HTML/DOM 查询/点击/填充/JS 执行/截图（真 PNG image 块）/抓包启停+网络日志+请求体+HAR 导出/资源嗅探+下载/Cookie 增删查/localStorage/指纹环境（列表/启动/人格）/代理（列表/切换）/广告拦截/油猴脚本/书签/历史/内置 AI 对话——页级工具可指定 `tabId`，默认作用于活动标签
+- **stdio 桥**：零依赖 `mcp-stdio.js` 自动写入 `<userData>`，Claude Desktop / Codex 等以子进程方式拉起即可接入（逐行 JSON-RPC ↔ HTTP 转发）
+- **设置页 MCP 区块**：启停开关、端口、运行状态、令牌（截断显示+重新生成）、stdio/HTTP 两份客户端配置一键复制，四语言键
+- IPC：`mcp:state` / `mcp:set` / `mcp:regen` / `mcp:config`，host 与内部页双 preload 暴露 `hz.mcp` / `hzNav.mcp`
+
+### Fixed / 修复
+- `run_js` 兼容裸表达式（agent 常写 `document.title`）：先尝试表达式包裹再回退语句体
+- `set_cookie`/`delete_cookie` 未给 `url` 时自动回落当前页 URL（Electron `cookies.set` 必需）
+- `activate_tab`/`close_tab` 对不存在标签静默成功 → 改为报错 `no such tab`
+- `storage_get` 在 opaque origin/禁用 DOM 存储页抛错 → JS 内 try/catch 返回 `[]`
+- 未知工具名现在返回 `isError:true` 而非普通文本
+- `initialize` 固定回 `2025-06-18`（协议协商正确语义，不回显未知版本）
+
+### Verified / 实测（打包产物 `win-unpacked`，非 dev）
+- HTTP：`initialize`→握手+protocolVersion；`tools/list`→36；`navigate example.com`→`https://example.com`；`page_text`/`dom_query`/`run_js`→真页面数据；`start_capture`→`network_log` 出 `GET /` Document 记录→`har_export` 真 HAR→`stop_capture`；`screenshot`→14.9KB PNG image 块；`set_cookie`→`list_cookies` 写读一致；无令牌→401
+- stdio：管道 `tools/list` 经 `mcp-stdio.js` 全链路往返 ✓
+- 设置页 MCP 区块截图入库 `docs/screenshots/mcp-settings.png`（运行中状态、令牌、双配置）
+
 ## [1.6.1] — 2025-11-10
 
 ### Fixed / 修复

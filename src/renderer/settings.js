@@ -67,6 +67,32 @@ async function boot() {
     setTimeout(() => { e.target.textContent = tr('set.clear'); }, 1600);
   };
 
+  // mcp — agent bridge
+  async function mcpRefresh() {
+    const s = await hzNav.mcp.state();
+    $('#swMcp').checked = !!s.enabled;
+    $('#inMcpPort').value = s.port || 8765;
+    $('#mcpUrl').textContent = s.url || ('http://127.0.0.1:' + (s.port || 8765) + '/mcp');
+    $('#mcpState').textContent = s.running ? '● ' + tr('set.mcp.on') : '○ ' + tr('set.mcp.off');
+    $('#mcpState').style.color = s.running ? '#3fb950' : 'var(--fg2)';
+    $('#mcpToken').textContent = s.token ? (s.token.slice(0, 8) + '…') : '—';
+    const cfg = await hzNav.mcp.config();
+    if (cfg) { $('#taCfgStdio').value = cfg.stdio; $('#taCfgHttp').value = cfg.http; }
+  }
+  await mcpRefresh();
+  $('#swMcp').onchange = e => hzNav.mcp.set({ enabled: e.target.checked }).then(mcpRefresh);
+  $('#inMcpPort').onchange = e => hzNav.mcp.set({ port: parseInt(e.target.value, 10) || 8765 }).then(mcpRefresh);
+  $('#btnMcpRegen').onclick = () => hzNav.mcp.regen().then(mcpRefresh);
+  const copyBtn = (btn, ta) => {
+    $(btn).onclick = async () => {
+      await navigator.clipboard.writeText($(ta).value);
+      $(btn).textContent = tr('set.mcp.copied');
+      setTimeout(() => { $(btn).textContent = tr('set.mcp.copy'); }, 1400);
+    };
+  };
+  copyBtn('#btnCfgStdio', '#taCfgStdio');
+  copyBtn('#btnCfgHttp', '#taCfgHttp');
+
   // about
   $('#aboutVer').textContent = tr('set.version') + ' ' + (await hzNav.version());
 }

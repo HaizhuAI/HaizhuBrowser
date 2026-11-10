@@ -16,6 +16,10 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 |---|---|
 | <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
 
+| MCP / agent integration (settings) |  |
+|---|---|
+| <img src="docs/screenshots/mcp-settings.png" width="640"> |  |
+
 | Android — main | Android — menu |
 |---|---|
 | <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
@@ -43,8 +47,66 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **Themes** | Dark / light / follow-system across all UI surfaces | System dark mode |
 | **i18n** | English / 简体中文 / 繁體中文 / 日本語 — toolbar, menu, panel, NTP, settings | System strings |
 | **New tab** | Edge-style immersive NTP: Bing daily wallpaper, frosted search, quick-link tiles | Simple NTP |
-| **Settings** | `haizhu://settings` — appearance, language, startup, search engine, privacy, about | — |
+| **Settings** | `haizhu://settings` — appearance, language, startup, search engine, privacy, MCP, about | — |
+| **MCP server** | Built-in **Model Context Protocol** endpoint — drive the whole browser from Claude Desktop / Codex / any MCP agent: tabs, navigation, DOM, cookies, capture+HAR, sniffing, environments, proxies, adblock, userscripts, AI | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
+
+## MCP — drive the browser from any agent
+
+Haizhu Browser embeds a **Model Context Protocol** server so external AI agents
+(Claude Desktop, Codex, custom agents…) can navigate pages, capture traffic,
+read cookies, automate the DOM and manage fingerprint environments — the same
+tool surface the built-in AI agent uses.
+
+**Enable:** `haizhu://settings` → **MCP / Agents** → toggle on. The server binds
+`127.0.0.1` only and requires a bearer token (auto-generated, regeneratable) —
+nothing is reachable off-machine.
+
+**Connect (two transports):**
+
+- **stdio** — for clients that spawn MCP servers as child processes. Paste the
+  generated config from Settings into your client's `mcpServers`:
+
+  ```json
+  {
+    "mcpServers": {
+      "haizhu": {
+        "command": "node",
+        "args": ["C:\\Users\\<you>\\AppData\\Roaming\\Haizhu Browser\\mcp-stdio.js"],
+        "env": { "HZ_MCP_PORT": "8765", "HZ_MCP_TOKEN": "<token from settings>" }
+      }
+    }
+  }
+  ```
+
+  The bridge script is written to `<userData>/mcp-stdio.js` automatically and
+  forwards newline-delimited JSON-RPC into the running browser (needs `node` on
+  `PATH`).
+
+- **Streamable HTTP** — for clients that speak HTTP MCP directly:
+
+  ```json
+  { "mcpServers": { "haizhu": {
+    "type": "http",
+    "url": "http://127.0.0.1:8765/mcp",
+    "headers": { "Authorization": "Bearer <token from settings>" }
+  } } }
+  ```
+
+**Tool surface (36 tools):** `list_tabs` / `new_tab` / `close_tab` /
+`activate_tab` / `navigate` (omnibox-style URL + search normalization) /
+`get_url` / `page_text` / `page_html` / `dom_query` / `click` / `fill` /
+`run_js` / `wait` / `screenshot` (real PNG image block) /
+`start_capture` / `stop_capture` / `network_log` / `request_body` /
+`har_export` / `resources` / `download_resource` /
+`list_cookies` / `set_cookie` / `delete_cookie` / `storage_get` /
+`list_profiles` / `launch_profile` / `profile_persona` /
+`proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
+`list_scripts` / `bookmarks` / `history` / `ai_chat`.
+
+A typical agent session: `start_capture` → `navigate` → `network_log` →
+`request_body` → `har_export` gives you a full sniffed session; `dom_query` →
+`click` → `fill` → `screenshot` drives page automation.
 
 ## Reverse-engineering pedigree
 

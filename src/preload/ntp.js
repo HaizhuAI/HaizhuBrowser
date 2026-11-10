@@ -22,5 +22,11 @@ contextBridge.exposeInMainWorld('hzNav', {
     state: () => invoke('ab:state'),
     toggle: on => invoke('ab:toggle', on)
   },
-  ck: { clear: () => invoke('ck:clear') }
+  ck: { clear: () => invoke('ck:clear') },
+  mcp: {
+    state: () => invoke('mcp:state'),
+    set: c => invoke('mcp:set', c),
+    regen: () => invoke('mcp:regen'),
+    config: () => invoke('mcp:config')
+  }
 });
