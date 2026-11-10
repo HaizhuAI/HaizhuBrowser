@@ -25,10 +25,17 @@ document.querySelectorAll('#ptabs .pt').forEach(el => {
     document.querySelectorAll('#ptabs .pt').forEach(x => x.classList.toggle('active', x === el));
     document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === 'p-' + el.dataset.p));
     refreshPage(el.dataset.p);
+    hz.settings.set('panelPage', el.dataset.p);
   };
 });
+// restore last open page (DevTools convention)
+hz.settings.get('panelPage').then(p => {
+  if (!p || p === 'net') return;
+  const el = document.querySelector(`#ptabs .pt[data-p="${p}"]`);
+  if (el) el.click();
+});
 function refreshPage(p) {
-  ({ net: loadCapture, res: loadRes, ck: loadCk, us: loadUs, ext: loadExt, px: loadPx, fp: loadFp, ai: loadAi })[p]?.();
+  ({ net: loadCapture, res: loadRes, ck: loadCk, us: loadUs, ext: loadExt, px: loadPx, fp: loadFp, env: loadEnv, ai: loadAi })[p]?.();
 }
 
 // ---------- capture ----------
@@ -234,15 +241,88 @@ async function loadFp() {
   const p = await hz.fp.persona();
   $('#fpPersona').innerHTML = p ? `<div class="kv">
     <div>User-Agent</div><div class="mono">${esc(p.userAgent)}</div>
-    <div>Platform</div><div>${esc(p.platform)} / ${esc(p.hardwareConcurrency)}c / ${p.deviceMemory}GB</div>
-    <div>Screen</div><div>${p.screen.width}x${p.screen.height}</div>
-    <div>GPU</div><div class="mono">${esc(p.gpu)}</div>
-    <div>Languages</div><div>${esc(p.languages.join(', '))}</div>
-    <div>TZ offset</div><div>${p.tzOffset} min</div></div>` : '<div class="dim">spoofing disabled — enable to preview persona</div>';
+    <div>Platform</div><div>${esc(p.platform)} / ${esc(p.hardwareConcurrency)}c / ${p.deviceMemory}GB / dpr ${p.devicePixelRatio}</div>
+    <div>Screen</div><div>${p.screen.width}x${p.screen.height} @${p.screen.colorDepth}bit</div>
+    <div>GPU</div><div class="mono">${esc(p.webgl.renderer)}</div>
+    <div>UA-CH</div><div class="mono">${esc(p.clientHints.platform)} ${esc(p.clientHints.platformVersion)} ${esc(p.clientHints.architecture)}</div>
+    <div>Languages</div><div>${esc(p.languages.join(', '))} · ${esc(p.timezone)}</div>
+    <div>Voices/Devs</div><div>${p.speechVoices.length} voices · ${p.mediaDevices.length} devices · ${p.fonts.length} fonts</div>
+    <div>Host</div><div>${esc(p.deviceName)} · ${esc(p.localIp)}</div></div>` : '<div class="dim">spoofing disabled — enable to preview persona</div>';
 }
 $('#fpOn').onchange = () => hz.fp.set({ enabled: $('#fpOn').checked }).then(loadFp);
 $('#fpMode').onchange = () => hz.fp.set({ mode: $('#fpMode').value }).then(loadFp);
 $('#fpRotate').onclick = () => hz.fp.rotate().then(loadFp);
+
+// ---------- environments ----------
+async function loadEnv() {
+  const list = await hz.profiles.list();
+  const px = await hz.proxy.list();
+  $('#envProxy').innerHTML = '<option value="">Direct</option>' +
+    [{ id: 'system', name: 'System' }, ...(px.profiles || [])].map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('');
+  $('#envList').innerHTML = list.map(p => `
+    <div class="env-card" data-id="${esc(p.id)}">
+      <div class="row" style="align-items:center">
+        <span class="env-dot" style="background:${esc(p.color || '#4f8ef7')}"></span>
+        <b style="flex:1">${esc(p.name)}</b>
+        ${p.open ? '<span class="badge g">open</span>' : ''}
+      </div>
+      <div class="row dim" style="font-size:11px">
+        <span class="badge b">${esc(p.os)}</span>
+        <span>${tr('env.proxy')}: ${esc(p.proxyName || 'direct')}</span>
+        <span class="mono">seed ${esc(String(p.seed).slice(0, 8))}</span>
+        <span>${p.lastUsed ? new Date(p.lastUsed).toLocaleDateString() : '—'}</span>
+      </div>
+      <div class="row">
+        <button data-launch="${esc(p.id)}">${tr('env.launch')}</button>
+        <button data-view="${esc(p.id)}">${tr('env.persona')}</button>
+        <button data-reseed="${esc(p.id)}" title="new fingerprint identity">↻</button>
+        <button data-dup="${esc(p.id)}">⧉</button>
+        <button data-del="${esc(p.id)}">✕</button>
+      </div>
+      <div class="env-detail hidden" id="envd-${esc(p.id)}"></div>
+    </div>`).join('') || `<div class="dim">${tr('env.empty')}</div>`;
+}
+$('#envNew').onclick = async () => {
+  $('#envForm').classList.toggle('hidden');
+  const px = await hz.proxy.list();
+  $('#envProxy').innerHTML = '<option value="">Direct</option>' +
+    [{ id: 'system', name: 'System' }, ...(px.profiles || [])].map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('');
+};
+$('#envCancel').onclick = () => $('#envForm').classList.add('hidden');
+$('#envCreate').onclick = async () => {
+  await hz.profiles.create({
+    name: $('#envName').value.trim(), os: $('#envOs').value,
+    proxyId: $('#envProxy').value || null, group: $('#envGroup').value.trim() || 'default',
+  });
+  $('#envName').value = '';
+  $('#envForm').classList.add('hidden');
+  loadEnv();
+};
+$('#envList').addEventListener('click', async e => {
+  const l = e.target.closest('[data-launch]');
+  if (l) { await hz.profiles.launch(l.dataset.launch); return; }
+  const v = e.target.closest('[data-view]');
+  if (v) {
+    const box = $('#envd-' + v.dataset.view);
+    if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+    const p = await hz.profiles.persona(v.dataset.view);
+    box.innerHTML = p ? `<div class="kv" style="font-size:11px">
+      <div>UA</div><div class="mono">${esc(p.userAgent)}</div>
+      <div>HW</div><div>${p.hardwareConcurrency}c/${p.deviceMemory}GB · ${p.screen.width}x${p.screen.height}@${p.devicePixelRatio} · ${p.screen.colorDepth}bit</div>
+      <div>GPU</div><div class="mono">${esc(p.webgl.renderer.slice(0, 90))}</div>
+      <div>TZ</div><div>${esc(p.timezone)} (${p.tzOffset}m) · ${esc(p.languages.join(','))}</div>
+      <div>Dev</div><div>${esc(p.deviceName)} · ${p.localIp} · ${p.speechVoices.length} voices · ${p.mediaDevices.length} media</div></div>`
+      : '<div class="dim">n/a</div>';
+    box.classList.remove('hidden');
+    return;
+  }
+  const r = e.target.closest('[data-reseed]');
+  if (r) { if (confirm(tr('env.reseedConfirm'))) await hz.profiles.reseed(r.dataset.reseed); loadEnv(); return; }
+  const du = e.target.closest('[data-dup]');
+  if (du) { await hz.profiles.duplicate(du.dataset.dup); loadEnv(); return; }
+  const d = e.target.closest('[data-del]');
+  if (d) { if (confirm(tr('env.delConfirm'))) await hz.profiles.remove(d.dataset.del); loadEnv(); }
+});
 
 // ---------- AI ----------
 const aiLog = [];

@@ -53,6 +53,16 @@ contextBridge.exposeInMainWorld('hz', {
     rotate: () => invoke('fp:rotate'),
     persona: () => invoke('fp:persona')
   },
+  profiles: {
+    list: () => invoke('prof:list'),
+    create: p => invoke('prof:create', p),
+    update: (id, p) => invoke('prof:update', id, p),
+    remove: id => invoke('prof:remove', id),
+    duplicate: id => invoke('prof:duplicate', id),
+    reseed: id => invoke('prof:reseed', id),
+    launch: (id, url) => invoke('prof:launch', id, url),
+    persona: id => invoke('prof:persona', id)
+  },
   us: {
     list: () => invoke('us:list'),
     get: id => invoke('us:get', id),

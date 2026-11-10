@@ -6,6 +6,7 @@ const fs = require('fs');
 
 const { Store } = require('./store');
 const { FingerprintManager } = require('./fingerprint');
+const { ProfileManager } = require('./profiles');
 const { UserscriptEngine } = require('./userscripts');
 const { CaptureManager, ResourceSniffer, M3U8Downloader } = require('./capture');
 const { ProxyManager } = require('./proxy');
@@ -20,6 +21,9 @@ app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
 // when the GPU process dies (observed exit 143 killing tab renderers).
 app.disableHardwareAcceleration();
+// WebRTC: never advertise real local/public IPs via host candidates — the
+// fingerprint layer rewrites advertised candidates to a seeded private IP.
+app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_interface_only');
 
 const CHROME_H = 82;
 const NTP_URL = 'haizhu://newtab';
@@ -31,6 +35,7 @@ protocol.registerSchemesAsPrivileged([{
 
 let win, chromeView, panelView;
 let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, attachProto = () => {};
+let profiles;
 let historyStore, i18n;
 let panelOpen = false;
 
@@ -255,6 +260,27 @@ function registerIpc() {
   ipcMain.handle('fp:rotate', () => { fingerprint.rotate(); return true; });
   ipcMain.handle('fp:persona', () => fingerprint.personaFor('preview'));
 
+  // profiles — isolated fingerprint+proxy environments (bitbrowser-style)
+  ipcMain.handle('prof:list', () => profiles.profiles.map(p => ({
+    ...p, proxyName: (profiles.proxyById(p.proxyId) || {}).name || p.proxyId || 'direct',
+    open: [...tabs.tabs.values()].some(t => t.profile && t.profile.id === p.id),
+  })));
+  ipcMain.handle('prof:create', (e, p) => profiles.create(p));
+  ipcMain.handle('prof:update', (e, id, patch) => profiles.update(id, patch));
+  ipcMain.handle('prof:remove', async (e, id) => {
+    for (const t of [...tabs.tabs.values()]) if (t.profile && t.profile.id === id) tabs.closeTab(t.id);
+    return profiles.remove(id);
+  });
+  ipcMain.handle('prof:duplicate', (e, id) => profiles.duplicate(id));
+  ipcMain.handle('prof:reseed', (e, id) => profiles.reseed(id));
+  ipcMain.handle('prof:launch', (e, id, url) => {
+    const t = tabs.openTab(url || 'haizhu://newtab', true, { profileId: id });
+    return t ? t.serialize() : null;
+  });
+  ipcMain.handle('prof:persona', (e, id) => {
+    const p = profiles.get(id); return p ? profiles.personaFor(p) : null;
+  });
+
   // userscripts
   ipcMain.handle('us:list', () => [...scripts.scripts.values()].map(s => ({ id: s.id, name: s.meta.name, version: s.meta.version, enabled: s.enabled, match: s.meta.match.concat(s.meta.include), desc: s.meta.description })));
   ipcMain.handle('us:get', (e, id) => { const s = scripts.scripts.get(id); return s ? { id: s.id, code: s.code, meta: s.meta, enabled: s.enabled } : null; });
@@ -417,6 +443,7 @@ app.whenReady().then(async () => {
   sniffer = new ResourceSniffer();
   m3u8 = new M3U8Downloader();
   proxy = new ProxyManager(store);
+  profiles = new ProfileManager(store, proxy, fingerprint);
   adblock = new AdBlock(store);
   extMgr = new ExtensionManager(store);
 
@@ -425,7 +452,11 @@ app.whenReady().then(async () => {
     fingerprint, scripts, captures, sniffer, adblock, proxy, store,
     history, broadcast,
     layoutPanel,
-    onSession: s => { attachProto(s); if (hub) hub.attach(s); }
+    profiles,
+    onSession: (s, tab) => {
+      attachProto(s); if (hub) hub.attach(s);
+      if (tab && tab.profile) profiles.bindSession(s, tab.profile);
+    }
   });
   ai = new AIModule(store, null);
 
@@ -439,6 +470,8 @@ app.whenReady().then(async () => {
       .then(rec => broadcast('userscript-installed', rec.meta.name))
       .catch(e => console.error('[us] install', e.message)));
   });
+  // profile-bound sessions: rewrite UA + UA-CH + Accept-Language at wire level
+  hub.on('reqHeaders', (d, ses) => profiles.headerRewrite(d, ses));
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);
   if (!process.env.HZ_NOHOOKS) {
@@ -450,11 +483,13 @@ app.whenReady().then(async () => {
   if (!process.env.HZ_NOLISTS) adblock.ensureLists().catch(e => console.error('[adblock]', e.message));
   extMgr.loadAll(ses).catch(e => console.error('[ext]', e.message));
 
-  // proxy auth handler
+  // proxy auth handler — profile sessions use their bound proxy's credentials
   app.on('login', (ev, wc, details, authInfo, cb) => {
     ev.preventDefault();
     if (authInfo.isProxy) {
-      const cred = proxy.credentials(proxy.active());
+      const prof = wc && profiles ? profiles.profileForSession(wc.session) : null;
+      const px = prof ? profiles.proxyById(prof.proxyId) : proxy.active();
+      const cred = proxy.credentials(px);
       if (cred) return cb(cred.username, cred.password);
     }
     cb();
@@ -493,6 +528,7 @@ app.whenReady().then(async () => {
         const t = tabs.active;
         fs.writeFileSync(path.join(process.env.HZ_SHOT, 'chrome.png'), (await chromeView.webContents.capturePage()).toPNG());
         if (t) fs.writeFileSync(path.join(process.env.HZ_SHOT, 'tab.png'), (await t.wc.capturePage()).toPNG());
+        if (panelView) fs.writeFileSync(path.join(process.env.HZ_SHOT, 'panel.png'), (await panelView.webContents.capturePage()).toPNG());
         console.log('[shot] saved');
       } catch (e) { console.error('[shot]', e.message); }
     }, parseInt(process.env.HZ_SHOT_DELAY || '9000', 10));

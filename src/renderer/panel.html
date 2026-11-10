@@ -21,6 +21,7 @@
     <div class="pt" data-p="ext" data-i18n="nav.extensions">Extensions</div>
     <div class="pt" data-p="px" data-i18n="nav.proxy">Proxy</div>
     <div class="pt" data-p="fp" data-i18n="nav.fingerprint">Fingerprint</div>
+    <div class="pt" data-p="env" data-i18n="nav.envs">Envs</div>
     <div class="pt" data-p="ai" data-i18n="nav.ai">AI Agent</div>
   </div>
   <div id="pbody">
@@ -84,6 +85,26 @@
       <button id="fpRotate">Rotate now</button></div>
       <div id="fpPersona"></div>
       <p class="dim">Spoofs navigator.*, screen.*, canvas, WebGL renderer, audio, timezone, WebRTC hints. Applied at document-start in the main world.</p>
+    </div>
+    <!-- ENVIRONMENTS (isolated fingerprint + proxy profiles) -->
+    <div class="page" id="p-env">
+      <div class="row"><button id="envNew" data-i18n="env.create">+ New environment</button><span class="dim" data-i18n="env.hint">Each env has its own storage, fingerprint and proxy.</span></div>
+      <div id="envList"></div>
+      <div id="envForm" class="hidden">
+        <h3 class="sec" data-i18n="env.create">New environment</h3>
+        <div class="kv">
+          <div data-i18n="env.name">Name</div><input id="envName" placeholder="Env name">
+          <div data-i18n="env.os">OS persona</div>
+          <select id="envOs">
+            <option value="auto">Auto (seeded)</option><option value="windows">Windows</option>
+            <option value="macos">macOS (Intel)</option><option value="macos_arm">macOS (Apple)</option>
+            <option value="linux">Linux</option><option value="android">Android</option>
+          </select>
+          <div data-i18n="env.proxy">Proxy</div><select id="envProxy"><option value="">Direct</option></select>
+          <div data-i18n="env.group">Group</div><input id="envGroup" placeholder="default">
+        </div>
+        <div class="row"><button id="envCreate">Create</button><button id="envCancel">Cancel</button></div>
+      </div>
     </div>
     <!-- AI -->
     <div class="page" id="p-ai">

@@ -14,7 +14,6 @@
   "menu.downloads": "ダウンロードフォルダを開く",
   "menu.settings": "設定",
   "menu.quit": "終了",
-
   "tb.back": "戻る (Alt+Left)",
   "tb.fwd": "進む (Alt+Right)",
   "tb.reload": "再読み込み (Ctrl+R)",
@@ -36,7 +35,6 @@
   "tab.newtab": "新しいタブ",
   "tab.incognito": "匿名",
   "tab.capturing": "キャプチャ中",
-
   "panel.title": "開発パネル",
   "panel.close": "パネルを閉じる",
   "nav.capture": "キャプチャ",
@@ -47,14 +45,12 @@
   "nav.proxy": "プロキシ",
   "nav.fingerprint": "フィンガープリント",
   "nav.ai": "AI エージェント",
-
   "ntp.search": "検索またはアドレスを入力",
   "ntp.focusAddr": "アドレスバーにフォーカス",
   "ntp.devPanel": "開発パネル",
   "ntp.incognito": "匿名タブ",
   "ntp.settings": "設定",
   "ntp.photoBy": "写真",
-
   "set.title": "設定",
   "set.appearance": "外観",
   "set.language": "言語",
@@ -79,5 +75,17 @@
   "set.cleared": "削除しました",
   "set.version": "バージョン",
   "set.repo": "ソースリポジトリ",
-  "set.license": "ライセンス"
+  "set.license": "ライセンス",
+  "nav.envs": "環境",
+  "env.hint": "各環境は独自のストレージ・指紋・プロキシを持ちます。",
+  "env.create": "新規環境",
+  "env.name": "名前",
+  "env.os": "OSペルソナ",
+  "env.proxy": "プロキシ",
+  "env.group": "グループ",
+  "env.launch": "起動",
+  "env.persona": "指紋",
+  "env.reseedConfirm": "この環境の指紋をローテーションしますか？Cookie/ストレージは保持されます。",
+  "env.delConfirm": "この環境と全データを削除しますか？",
+  "env.empty": "環境がありません。作成して指紋・プロキシ・ストレージを分離しましょう。"
 }

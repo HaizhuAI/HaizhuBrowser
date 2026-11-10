@@ -31,6 +31,7 @@ function render() {
     <div class="tab ${t.id === activeId ? 'active' : ''}" data-id="${t.id}" title="${esc(t.url)}">
       <span class="fav">${faviconHtml(t)}</span>
       ${t.incognito ? `<span class="inc">${esc(tr('tab.incognito'))}</span>` : ''}
+      ${t.profile ? `<span class="env-ind" style="background:${esc(t.profile.color || '#4f8ef7')}" title="${esc(t.profile.name)}"></span>` : ''}
       <span class="t">${esc(t.title || t.url || tr('tab.newtab'))}</span>
       ${t.capture ? `<span class="cap-ind" title="${esc(tr('tab.capturing'))}"></span>` : ''}
       <span class="x" data-x="${t.id}">${X_SVG}</span>

@@ -2,6 +2,19 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.5.0] — 2025-11-10
+
+### New / 新增
+- **独立环境（Environments）** — 商业化指纹浏览器体系（参照比特浏览器/ADS）：每个环境 = 独立 session 分区（cookie/存储/缓存全隔离）+ 独立指纹种子 + 独立代理绑定。面板新增「环境」页：新建（名称/系统人格/代理/分组）、启动、指纹预览、重种子、复制、删除；标签条显示环境色点徽标
+- **一致性设备人格** — CPU/内存/GPU/屏幕/DPR/色深按真实硬件打包抽取（不再是独立随机值）：Windows ANGLE/D3D11、macOS Metal（Intel/ARM 分池）、Linux Mesa/OpenGL、Android OpenGL ES。按环境种子确定性选择、跨启动稳定、按宿主机 WebGL 上限过滤
+- **原生级覆盖（环境标签）** — CDP `Emulation.setTimezoneOverride` / `setLocaleOverride` / `Network.setUserAgentOverride`（含 UA-CH 元数据 → 真 `sec-ch-ua*` 头 + `navigator.userAgentData`）；免 CSP 的 `Page.addScriptToEvaluateOnNewDocument` 注入；Android 人格附带触摸 + 设备度量仿真；debugger 断连自动恢复
+- **全量 JS 指纹面** — navigator（UA/platform/languages/cores/memory/touch/webdriver/真 PDF plugins）、`userAgentData` 高熵值（arch/bitness/platformVersion/fullVersionList）、screen+DPR、时区（Intl+getTimezoneOffset）、canvas 锁定块噪声（高风控站点自动低幅稳定）、WebGL（vendor/renderer + GPU 级参数表 + 厂商扩展过滤 + WebGPU adapterInfo）、音频指纹、clientRects、电池、媒体设备、语音库（按 OS 池+语言评分）、字体探测（拒绝本 OS 不存在的字族）、WebRTC host candidate 改写 + 全局 `default_public_interface_only`
+- **线级请求头改写** — 环境 session 的 `User-Agent` / `sec-ch-ua*` 全套 / `Accept-Language` 在 `onBeforeSendHeaders` 重写（webhub 新增该事件分发）
+- 面板记住上次打开的页签（DevTools 惯例）
+
+### Security / 安全
+- **OpenBrowser 安全审计完成** — `docs/SECURITY-OPENBROWSER.md`：无硬编码外泄域、云同步为用户自配、本地 API 有鉴权、元数据端点属 SSRF 拦截测试装置；AGPL-3.0 许可下**仅采用事实性数据表**（GPU 字符串/字体表/语音名/GL 限值），全部逻辑自研，未复制上游代码
+
 ## [1.4.0] — 2025-11-10
 
 ### New / 新增

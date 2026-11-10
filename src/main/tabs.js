@@ -12,7 +12,8 @@ class Tab {
   constructor(manager, url, opts = {}) {
     this.manager = manager;
     this.id = nextId++;
-    this.partition = opts.partition || 'persist:default';
+    this.profile = (opts.profileId && manager.ctx.profiles) ? manager.ctx.profiles.get(opts.profileId) : null;
+    this.partition = opts.partition || (this.profile ? manager.ctx.profiles.partitionFor(this.profile) : 'persist:default');
     this.ses = session.fromPartition(this.partition);
     this.pendingUrl = (url && url !== 'about:blank') ? manager.normalizeUrl(url) : manager.NTP_URL;
     const isNtp = /^haizhu:/.test(this.pendingUrl);
@@ -32,6 +33,10 @@ class Tab {
     this.url = 'about:blank';
     this.loading = false;
     this.incognito = !!opts.incognito;
+    if (this.profile) {
+      this.profile.lastUsed = Date.now();
+      this.fpSetup = this.setupCdpFp();
+    }
     this.favIconUrl = null;
     this.wire();
   }
@@ -62,7 +67,9 @@ class Tab {
   writeBootstrap() {
     const m = this.manager;
     const parts = [];
-    const fp = m.fingerprint.bootstrapFor('seed');
+    const fp = this.profile
+      ? m.fingerprint.bootstrapForProfile(this.profile)
+      : m.fingerprint.bootstrapFor('seed');
     if (fp) parts.push(fp);
     parts.push(m.scripts.bridgeSource());
     const dir = require('path').join(require('electron').app.getPath('userData'), 'bootstraps');
@@ -70,6 +77,64 @@ class Tab {
     const f = require('path').join(dir, 'boot-' + this.id + '.js');
     require('fs').writeFileSync(f, parts.join('\n'));
     return f;
+  }
+  // Profile tabs get native-level overrides via CDP: real V8 timezone/locale
+  // handling, network-service UA + UA-CH metadata, and a CSP-immune main-world
+  // fingerprint script (script-tag injection is blocked on strict-CSP sites).
+  // Re-applies on debugger detach (renderer swap / capture stop).
+  async setupCdpFp() {
+    // debugger commands queue until the first renderer commit — prime the
+    // session with about:blank so overrides land BEFORE the real navigation.
+    try {
+      await Promise.race([
+        this.wc.loadURL('about:blank'),
+        new Promise((_, rj) => setTimeout(() => rj(new Error('prime timeout')), 3000)),
+      ]);
+    } catch (e) {}
+    try { this.wc.debugger.attach('1.3'); }
+    catch (e) { if (!/already attached/.test(e.message)) return; }
+    const dbg = this.wc.debugger;
+    const send = (m, p) => Promise.race([
+      dbg.sendCommand(m, p),
+      new Promise((_, rj) => setTimeout(() => rj(new Error('cdp timeout')), 3000)),
+    ]).catch(() => null);
+    const persona = this.manager.ctx.profiles.personaFor(this.profile);
+    const { buildBootstrap } = require('./fingerprint');
+    const ch = persona.clientHints;
+    const apply = async () => {
+      const jobs = [
+        send('Emulation.setTimezoneOverride', { timezoneId: persona.timezone }),
+        send('Emulation.setLocaleOverride', { locale: persona.languages[0] }),
+        send('Page.enable'),
+        send('Network.enable'),
+        send('Network.setUserAgentOverride', {
+          userAgent: this.profile.uaOverride || persona.userAgent,
+          acceptLanguage: persona.languages.join(','),
+          userAgentMetadata: {
+            brands: ch.brands, fullVersionList: ch.fullVersionList,
+            platform: ch.platform, platformVersion: ch.platformVersion,
+            architecture: ch.architecture, model: ch.model, mobile: ch.mobile,
+            bitness: ch.bitness, wow64: ch.wow64, fullVersion: ch.uaFullVersion,
+          },
+        }),
+      ];
+      if (persona.os === 'android') {
+        jobs.push(
+          send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }),
+          send('Emulation.setDeviceMetricsOverride', {
+            width: persona.screen.width, height: persona.screen.height,
+            deviceScaleFactor: persona.devicePixelRatio, mobile: true,
+          }));
+      }
+      await Promise.allSettled(jobs);
+      const r = await send('Page.addScriptToEvaluateOnNewDocument', { source: buildBootstrap(persona) });
+      if (r && r.identifier) this._fpScriptId = r.identifier;
+    };
+    await apply();
+    dbg.on('detach', () => {
+      if (this.wc.isDestroyed()) return;
+      try { dbg.attach('1.3'); apply(); } catch (e) {}
+    });
   }
   async injectUserscripts(when) {
     const url = this.wc.getURL();
@@ -87,7 +152,8 @@ class Tab {
       loading: this.loading, incognito: this.incognito, fav: this.favIconUrl,
       canBack: this.wc.navigationHistory.canGoBack(), canFwd: this.wc.navigationHistory.canGoForward(),
       capture: this.manager.captures.get(this.wc).enabled,
-      devtools: this.wc.isDevToolsOpened()
+      devtools: this.wc.isDevToolsOpened(),
+      profile: this.profile ? { id: this.profile.id, name: this.profile.name, color: this.profile.color, os: this.profile.os } : null
     };
   }
 }
@@ -124,14 +190,17 @@ class TabManager {
     const tab = new Tab(this, url, opts);
     this.tabs.set(tab.id, tab);
     this.sessions.add(tab.ses);
-    if (this.ctx.onSession) this.ctx.onSession(tab.ses);
+    if (this.ctx.onSession) this.ctx.onSession(tab.ses, tab);
     // Attach the view to the window BEFORE navigating — loading a URL in a
     // detached WebContentsView destabilizes the network service (renderer
     // + utility crash exit 143, observed on Electron 44).
     this.win.contentView.addChildView(tab.view);
     tab.wc.on('dom-ready', () => tab.injectUserscripts('document-end').then(() => tab.injectUserscripts('document-idle')));
     if (active) this.activate(tab.id); else this.layout();
-    if (tab.pendingUrl) tab.wc.loadURL(tab.pendingUrl);
+    if (tab.pendingUrl) {
+      if (tab.fpSetup) tab.fpSetup.finally(() => { if (!tab.wc.isDestroyed()) tab.wc.loadURL(tab.pendingUrl); });
+      else tab.wc.loadURL(tab.pendingUrl);
+    }
     this.broadcast('tab-added', tab.serialize());
     return tab;
   }

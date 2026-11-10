@@ -14,7 +14,6 @@
   "menu.downloads": "打开下载目录",
   "menu.settings": "设置",
   "menu.quit": "退出",
-
   "tb.back": "后退 (Alt+Left)",
   "tb.fwd": "前进 (Alt+Right)",
   "tb.reload": "刷新 (Ctrl+R)",
@@ -36,7 +35,6 @@
   "tab.newtab": "新标签页",
   "tab.incognito": "匿名",
   "tab.capturing": "抓包中",
-
   "panel.title": "开发者面板",
   "panel.close": "关闭面板",
   "nav.capture": "抓包",
@@ -47,14 +45,12 @@
   "nav.proxy": "代理",
   "nav.fingerprint": "指纹",
   "nav.ai": "AI 助手",
-
   "ntp.search": "搜索或输入网址",
   "ntp.focusAddr": "聚焦地址栏",
   "ntp.devPanel": "开发者面板",
   "ntp.incognito": "匿名标签",
   "ntp.settings": "设置",
   "ntp.photoBy": "图片",
-
   "set.title": "设置",
   "set.appearance": "外观",
   "set.language": "语言",
@@ -79,5 +75,17 @@
   "set.cleared": "已清除",
   "set.version": "版本",
   "set.repo": "源码仓库",
-  "set.license": "许可证"
+  "set.license": "许可证",
+  "nav.envs": "环境",
+  "env.hint": "每个环境拥有独立存储、指纹与代理。",
+  "env.create": "新建环境",
+  "env.name": "名称",
+  "env.os": "系统人格",
+  "env.proxy": "代理",
+  "env.group": "分组",
+  "env.launch": "启动",
+  "env.persona": "指纹",
+  "env.reseedConfirm": "为该环境轮换指纹身份？cookie/存储保留，身份变更。",
+  "env.delConfirm": "删除此环境及其全部存储数据？",
+  "env.empty": "暂无环境。创建一个以隔离指纹、代理与存储。"
 }

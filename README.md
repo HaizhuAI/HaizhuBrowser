@@ -13,7 +13,8 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **Userscripts** | Tampermonkey-compatible: `==UserScript==` metadata, `@match/@include/@exclude`, `@run-at`, full `GM_*` API surface (cross-origin XHR, clipboard, tabs, values, cookies, notifications, downloads) | Same engine semantics via `JavascriptInterface` bridge |
 | **Extensions** | `session.loadExtension` — MV2 + MV3 (service-worker subset), install from `.zip`/`.crx`, toggle/remove | — |
 | **Proxy** | HTTP/HTTPS/SOCKS4/SOCKS5/PAC profiles, per-session, auth support, bypass rules | `ProxyController` + OkHttp channel |
-| **Fingerprint spoofing** | `navigator.*`, `screen.*`, canvas noise, WebGL renderer, AudioContext, timezone, WebRTC — per-session or per-domain persona, rotate anytime | Same persona algorithm, document-start injection |
+| **Environments** | Commercial-style isolated profiles (Bit Browser class): own partition + fingerprint seed + proxy binding + UA/UA-CH header rewrite; launch/reseed/duplicate/delete from the Environments panel | — |
+| **Fingerprint spoofing** | Coherent device personas (CPU/RAM/GPU/screen/DPR bundled), CDP-native timezone/locale/UA-CH overrides, canvas/WebGL/audio/rects/battery/devices/voices/fonts/WebRTC — per-env seed-stable, CSP-immune injection | Same persona algorithm, document-start injection |
 | **Anonymous tabs** | In-memory partitions + persona + proxy chain | Cookie-disabled WebView |
 | **AdBlock** | EasyList/EasyPrivacy/EasyList-China subscriptions, `||domain^`/`\|anchor`/`@@`/`$type` grammar | Same rule engine |
 | **AI assistant** | **Duck.ai built-in** (GPT-4o-mini / Llama / Claude / Mixtral / o3-mini) + import any **OpenAI-compatible endpoint** (base URL + key + model) | Same protocol layer |

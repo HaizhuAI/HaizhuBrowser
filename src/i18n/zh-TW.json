@@ -14,7 +14,6 @@
   "menu.downloads": "開啟下載目錄",
   "menu.settings": "設定",
   "menu.quit": "結束",
-
   "tb.back": "上一頁 (Alt+Left)",
   "tb.fwd": "下一頁 (Alt+Right)",
   "tb.reload": "重新整理 (Ctrl+R)",
@@ -36,7 +35,6 @@
   "tab.newtab": "新分頁",
   "tab.incognito": "匿名",
   "tab.capturing": "抓包中",
-
   "panel.title": "開發者面板",
   "panel.close": "關閉面板",
   "nav.capture": "抓包",
@@ -47,14 +45,12 @@
   "nav.proxy": "代理",
   "nav.fingerprint": "指紋",
   "nav.ai": "AI 助手",
-
   "ntp.search": "搜尋或輸入網址",
   "ntp.focusAddr": "聚焦網址列",
   "ntp.devPanel": "開發者面板",
   "ntp.incognito": "匿名分頁",
   "ntp.settings": "設定",
   "ntp.photoBy": "圖片",
-
   "set.title": "設定",
   "set.appearance": "外觀",
   "set.language": "語言",
@@ -79,5 +75,17 @@
   "set.cleared": "已清除",
   "set.version": "版本",
   "set.repo": "原始碼儲存庫",
-  "set.license": "授權條款"
+  "set.license": "授權條款",
+  "nav.envs": "環境",
+  "env.hint": "每個環境擁有獨立儲存、指紋與代理。",
+  "env.create": "新增環境",
+  "env.name": "名稱",
+  "env.os": "系統人格",
+  "env.proxy": "代理",
+  "env.group": "群組",
+  "env.launch": "啟動",
+  "env.persona": "指紋",
+  "env.reseedConfirm": "為該環境輪換指紋身份？cookie/儲存保留，身份變更。",
+  "env.delConfirm": "刪除此環境及其全部儲存資料？",
+  "env.empty": "尚無環境。建立一個以隔離指紋、代理與儲存。"
 }

@@ -14,7 +14,6 @@
   "menu.downloads": "Open downloads folder",
   "menu.settings": "Settings",
   "menu.quit": "Quit",
-
   "tb.back": "Back (Alt+Left)",
   "tb.fwd": "Forward (Alt+Right)",
   "tb.reload": "Reload (Ctrl+R)",
@@ -36,7 +35,6 @@
   "tab.newtab": "New Tab",
   "tab.incognito": "INCOG",
   "tab.capturing": "Capturing",
-
   "panel.title": "Developer Panel",
   "panel.close": "Close panel",
   "nav.capture": "Capture",
@@ -47,14 +45,12 @@
   "nav.proxy": "Proxy",
   "nav.fingerprint": "Fingerprint",
   "nav.ai": "AI Agent",
-
   "ntp.search": "Search or enter address",
   "ntp.focusAddr": "Focus address bar",
   "ntp.devPanel": "Dev panel",
   "ntp.incognito": "Anonymous tab",
   "ntp.settings": "Settings",
   "ntp.photoBy": "Photo",
-
   "set.title": "Settings",
   "set.appearance": "Appearance",
   "set.language": "Language",
@@ -79,5 +75,17 @@
   "set.cleared": "Cleared",
   "set.version": "Version",
   "set.repo": "Source repository",
-  "set.license": "License"
+  "set.license": "License",
+  "nav.envs": "Environments",
+  "env.hint": "Each env has its own storage, fingerprint and proxy.",
+  "env.create": "New environment",
+  "env.name": "Name",
+  "env.os": "OS persona",
+  "env.proxy": "Proxy",
+  "env.group": "Group",
+  "env.launch": "Launch",
+  "env.persona": "Persona",
+  "env.reseedConfirm": "Rotate fingerprint identity for this env? Cookies/storage stay; identity changes.",
+  "env.delConfirm": "Delete this environment and ALL its stored data?",
+  "env.empty": "No environments yet. Create one to isolate fingerprint + proxy + storage."
 }

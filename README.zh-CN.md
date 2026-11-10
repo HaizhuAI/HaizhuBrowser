@@ -13,7 +13,8 @@
 | **油猴脚本** | 完整兼容 Tampermonkey：`==UserScript==` 元数据、`@match/@include/@exclude`、`@run-at`、全量 `GM_*` API（跨域 XHR、剪贴板、新标签、键值存储、Cookie、通知、下载） | `JavascriptInterface` 桥接同语义引擎 |
 | **浏览器扩展** | `session.loadExtension`：MV2 + MV3（service-worker 子集），支持 `.zip`/`.crx` 安装、启停、卸载 | — |
 | **代理** | HTTP/HTTPS/SOCKS4/SOCKS5/PAC 配置档，按会话生效，支持账密鉴权与绕行规则 | `ProxyController` + OkHttp 通道 |
-| **指纹伪装** | `navigator.*`、`screen.*`、Canvas 噪点、WebGL 渲染器、AudioContext、时区、WebRTC——按会话或按域名生成独立人格，一键轮换 | 同算法，document-start 注入 |
+| **独立环境** | 商业化指纹环境（比特浏览器级）：独立分区 + 指纹种子 + 代理绑定 + UA/UA-CH 请求头改写；环境页支持启动/重种子/复制/删除 | — |
+| **指纹伪装** | 一致性设备人格（CPU/内存/GPU/屏幕/DPR 打包）、CDP 原生时区/语言/UA-CH 覆盖、Canvas/WebGL/音频/矩形/电池/设备/语音/字体/WebRTC——按环境种子稳定、免 CSP 注入 | 同算法，document-start 注入 |
 | **匿名标签** | 内存分区（不落盘）+ 指纹人格 + 代理链 | 禁用 Cookie 的独立 WebView |
 | **广告拦截** | EasyList/EasyPrivacy/中文清单订阅，支持 `||domain^`/`\|锚点`/`@@例外`/`$类型` 语法 | 同一规则引擎 |
 | **AI 助手** | **内置 Duck.ai**（GPT-4o-mini / Llama / Claude / Mixtral / o3-mini）+ 可导入任意 **OpenAI 兼容端点**（base URL + key + model） | 同一协议层 |
