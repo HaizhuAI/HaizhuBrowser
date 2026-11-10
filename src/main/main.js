@@ -18,7 +18,7 @@ app.setName('Haizhu Browser');
 // when the GPU process dies (observed exit 143 killing tab renderers).
 app.disableHardwareAcceleration();
 
-const CHROME_H = 46;
+const CHROME_H = 82;
 
 let win, chromeView, panelView;
 let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs;

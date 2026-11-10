@@ -96,7 +96,7 @@ class TabManager {
     this.ctx = ctx; // {win, chrome, fingerprint, scripts, captures, adblock, proxy, store, broadcast}
     this.tabs = new Map();
     this.activeId = null;
-    this.chromeH = 46; // px reserved at top for chrome UI
+    this.chromeH = 82; // px reserved at top for chrome UI
     this.panelW = 0;   // px reserved on right for docked panel
     this.sessions = new Set();
   }

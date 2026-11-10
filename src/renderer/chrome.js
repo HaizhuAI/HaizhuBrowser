@@ -1,21 +1,41 @@
 'use strict';
 /* chrome.js — tab strip, omnibox, toolbar wiring. Talks to main via window.hz. */
 const $ = s => document.querySelector(s);
-const tabstrip = $('#tabstrip'), omni = $('#omnibox');
+const tabstrip = $('#tabstrip'), omni = $('#omni');
 let tabs = [], activeId = null, menuEl = null;
 
 function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+const X_SVG = '<svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.2"/></svg>';
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="13" height="13"><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
+const WARN_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.2h.01"/></svg>';
+const INFO_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></svg>';
+
 function render() {
   tabstrip.innerHTML = tabs.map(t => `
     <div class="tab ${t.id === activeId ? 'active' : ''}" data-id="${t.id}" title="${esc(t.url)}">
-      ${t.loading ? '<span class="dot"></span>' : (t.fav ? `<img src="${esc(t.fav)}" width="14" height="14" style="flex:none;border-radius:3px">` : '')}
+      ${t.loading
+        ? '<span class="fav"><span class="spin"></span></span>'
+        : `<span class="fav">${t.fav ? `<img src="${esc(t.fav)}">` : ''}</span>`}
       ${t.incognito ? '<span class="inc">INCOG</span>' : ''}
       <span class="t">${esc(t.title || t.url || 'New Tab')}</span>
-      <span class="x" data-x="${t.id}">&#10005;</span>
+      ${t.capture ? '<span class="cap-ind" title="Capturing"></span>' : ''}
+      <span class="x" data-x="${t.id}">${X_SVG}</span>
     </div>`).join('');
+
   const active = tabs.find(t => t.id === activeId);
   if (active && document.activeElement !== omni) omni.value = active.url === 'about:blank' ? '' : active.url;
+
+  // nav button enabled state + security indicator (from serialize fields)
+  const sec = $('#omni-sec');
+  if (active) {
+    $('#bBack').disabled = !active.canBack;
+    $('#bFwd').disabled = !active.canFwd;
+    const u = active.url || '';
+    if (/^https:/i.test(u)) { sec.innerHTML = LOCK_SVG; sec.className = ''; sec.title = 'Connection is secure'; }
+    else if (/^http:/i.test(u)) { sec.innerHTML = WARN_SVG; sec.className = 'warn-c'; sec.title = 'Not secure (HTTP)'; }
+    else { sec.innerHTML = INFO_SVG; sec.className = ''; sec.title = u.startsWith('file:') ? 'Local file' : 'Internal page'; }
+  }
 }
 
 async function refresh() {
@@ -35,12 +55,18 @@ tabstrip.addEventListener('auxclick', e => {
   const t = e.target.closest('.tab');
   if (t && e.button === 1) hz.tabs.close(+t.dataset.id);
 });
+// double-click empty strip / drag space -> new tab (Chrome behavior)
+$('#dragspace').addEventListener('dblclick', () => hz.tabs.open('about:blank'));
+$('#tabrow').addEventListener('dblclick', e => {
+  if (e.target.id === 'tabrow' || e.target.id === 'tabstrip') hz.tabs.open('about:blank');
+});
 
 $('#bNew').onclick = () => hz.tabs.open('about:blank');
 $('#bInc').onclick = () => hz.tabs.open('about:blank', { incognito: true, partition: 'incognito:' + Date.now() });
 $('#bBack').onclick = () => hz.tabs.back();
 $('#bFwd').onclick = () => hz.tabs.fwd();
 $('#bReload').onclick = () => hz.tabs.reload();
+$('#omni-go').onclick = () => { hz.tabs.navigate(omni.value); omni.blur(); };
 $('#bPanel').onclick = () => hz.panel.toggle();
 $('#bDevtools').onclick = () => hz.tabs.devtools();
 $('#bCap').onclick = async () => {
@@ -74,9 +100,8 @@ $('#bMenu').onclick = e => {
   if (menuEl) { menuEl.remove(); menuEl = null; return; }
   menuEl = document.createElement('div');
   menuEl.className = 'menu-pop';
-  menuEl.style.right = '8px'; menuEl.style.top = '46px';
   menuEl.innerHTML = MENU.map((m, i) => m[0] === '—'
-    ? '<div style="border-top:1px solid var(--border);margin:4px 0"></div>'
+    ? '<div class="sep"></div>'
     : `<div class="mi" data-i="${i}"><span>${esc(m[0])}</span><span class="kbd">${esc(m[1] || '')}</span></div>`).join('');
   menuEl.onclick = ev => {
     const mi = ev.target.closest('.mi');
@@ -108,6 +133,7 @@ hz.tabs.onAdded(t => { refresh(); });
 hz.tabs.onClosed(id => { refresh(); });
 hz.tabs.onActivated((id, t) => { activeId = id; const i = tabs.findIndex(x => x.id === id); if (i >= 0) tabs[i] = t; render(); });
 hz.us.onInstalled(name => { /* toast in panel context; keep silent here */ });
+if (hz.panel.onState) hz.panel.onState(open => $('#bPanel').classList.toggle('active', !!open));
 
 $('#wMin').onclick = () => hz.app.winctrl('min');
 $('#wMax').onclick = () => hz.app.winctrl('max');
