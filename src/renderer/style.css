@@ -16,6 +16,8 @@
   --shadow-pop: 0 8px 32px #000a, 0 0 0 1px #ffffff10 inset;
   --mono: 'Cascadia Code','JetBrains Mono',Consolas,monospace;
   --ui-font: 'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --ease-spring: cubic-bezier(.34,1.45,.5,1);
+  --ease-out: cubic-bezier(.22,.9,.36,1);
 }
 [data-theme="light"] {
   --tabbar: #e3e4e8;
@@ -69,6 +71,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
   font-size: 12px; color: var(--fg2);
   cursor: default; position: relative; flex: 0 1 210px;
   transition: color .12s;
+}
+/* spring pop when a tab is newly added (JS tags .new once) */
+.tab.new { animation: tab-in .28s var(--ease-spring); transform-origin: bottom center; }
+@keyframes tab-in {
+  0% { transform: translateY(6px) scale(.94); opacity: 0; }
+  100% { transform: none; opacity: 1; }
 }
 /* inactive separator */
 .tab:not(.active):not(:hover)::after {
@@ -133,8 +141,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
 .wbtn {
   width: 46px; border: none; border-radius: 0; background: transparent;
   display: grid; place-items: center; color: var(--fg);
-  transition: background .12s;
+  transition: background .12s, transform .1s var(--ease-spring);
 }
+.wbtn:active { transform: scale(.9); }
 .wbtn:hover { background: var(--tab-hover); }
 .wbtn.close:hover { background: var(--close-hov); color: #fff; }
 
@@ -151,6 +160,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
   white-space: nowrap; flex: none;
 }
 .bm-btn:hover { background: var(--tab-hover); color: var(--fg); }
+.bm-btn:active { transform: scale(.92); }
+.bm-btn { transition: background .12s, color .12s, transform .12s var(--ease-spring); }
 .bm-btn img { width: 14px; height: 14px; border-radius: 3px; flex: none; }
 .bm-btn .bm-ic { display: flex; color: var(--acc); flex: none; }
 .bm-btn span.t { overflow: hidden; text-overflow: ellipsis; }
@@ -197,7 +208,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
   background: transparent; display: grid; place-items: center; color: var(--fg2);
   transition: background .12s, color .12s;
 }
+.obtn { transition: background .12s, color .12s, transform .1s var(--ease-spring); }
 .obtn:hover { background: var(--acc-soft); color: var(--acc); }
+.obtn:active { transform: scale(.88); }
 
 /* ================= DEV PANEL ================= */
 #panel { display: flex; flex-direction: column; height: 100vh; background: var(--bg); border-left: 1px solid var(--border); }

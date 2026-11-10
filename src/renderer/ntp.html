@@ -53,7 +53,11 @@
   main {
     height: 100%; display: flex; flex-direction: column; align-items: center;
     padding-top: min(26vh, 240px);
+    animation: rise .55s cubic-bezier(.22,.9,.36,1) backwards;
   }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  .brand .lg { animation: bob 5.5s ease-in-out 1s infinite; }
+  @keyframes bob { 50% { transform: translateY(-3px); } }
   .search {
     width: min(640px, 88vw); display: flex; align-items: center; height: 54px;
     background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 999px;
@@ -86,6 +90,11 @@
     background: var(--glass); border: 1px solid #ffffff14;
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     transition: background .13s, transform .13s, border-color .13s;
+    animation: tileIn .5s cubic-bezier(.22,.9,.36,1) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  @keyframes tileIn {
+    from { opacity: 0; transform: translateY(12px) scale(.93); }
   }
   .tile:hover { background: var(--glass-hov); border-color: var(--glass-brd); transform: translateY(-2px); }
   .tile:active { transform: scale(.96); }
@@ -211,7 +220,11 @@ function tile(name, url, fav) {
     if (merged.length >= 8) break;
   }
   for (const [n, u] of QUICK) { if (merged.length >= 10) break; if (!seen.has(new URL(u).hostname)) { seen.add(new URL(u).hostname); merged.push({ name: n, url: u }); } }
-  merged.slice(0, 10).forEach(m => linksEl.appendChild(tile(m.name, m.url, m.fav)));
+  merged.slice(0, 10).forEach((m, i) => {
+    const a = tile(m.name, m.url, m.fav);
+    a.style.setProperty('--i', i);
+    linksEl.appendChild(a);
+  });
 })();
 </script>
 </body>

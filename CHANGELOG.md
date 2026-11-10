@@ -2,6 +2,14 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.6.0] — 2025-11-10
+
+### Design / 设计更新（haizhu-codex-design 设计语言移植）
+- **新 Logo** — SDF 重绘：收锋浪线（笔触两端渐细）穿竖柱，斜向深海→青蓝渐变 + 微光晕 + 暗角，`resources/icon.png|.ico`
+- **弹簧动效系统** — 设计 token `--ease-spring`/`--ease-out`；新标签弹簧入场（`.new` 仅触发一次）、书签/工具/窗控按钮按压缩放（.88–.92）
+- **NTP 入场编排** — 主体升起 + 瓷贴 45ms 错峰入场 + logo 5.5s 轻浮动
+- 说明：七库均为 React/Tailwind/RN 组件，浏览器 chrome 为无依赖原生页，未装库、按目录选型移植设计语言（beUI 弹簧/按压、Rare UI 点缀思路），保持 Chrome/Edge 结构不变
+
 ## [1.5.4] — 2025-11-10
 
 ### Fixed / 修复

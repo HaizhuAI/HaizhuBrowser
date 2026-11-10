@@ -37,16 +37,22 @@ document.addEventListener('error', e => {
   else if (img.closest('.bm-btn')) img.outerHTML = `<span class="bm-ic">${GLOBE_SVG}</span>`;
 }, true);
 
+const seenTabs = new Set();
 function render() {
-  tabstrip.innerHTML = tabs.map(t => `
-    <div class="tab ${t.id === activeId ? 'active' : ''}" data-id="${t.id}" title="${esc(t.url)}">
+  const newIds = new Set(tabs.map(t => t.id));
+  for (const id of [...seenTabs]) if (!newIds.has(id)) seenTabs.delete(id);
+  tabstrip.innerHTML = tabs.map(t => {
+    const fresh = !seenTabs.has(t.id); seenTabs.add(t.id);
+    return `
+    <div class="tab ${t.id === activeId ? 'active' : ''} ${fresh ? 'new' : ''}" data-id="${t.id}" title="${esc(t.url)}">
       <span class="fav">${faviconHtml(t)}</span>
       ${t.incognito ? `<span class="inc">${esc(tr('tab.incognito'))}</span>` : ''}
       ${t.profile ? `<span class="env-ind" style="background:${esc(t.profile.color || '#4f8ef7')}" title="${esc(t.profile.name)}"></span>` : ''}
       <span class="t">${esc(t.title || t.url || tr('tab.newtab'))}</span>
       ${t.capture ? `<span class="cap-ind" title="${esc(tr('tab.capturing'))}"></span>` : ''}
       <span class="x" data-x="${t.id}">${X_SVG}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const active = tabs.find(t => t.id === activeId);
   if (active && document.activeElement !== omni) omni.value = isNtp(active.url) ? '' : active.url;
