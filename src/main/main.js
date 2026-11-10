@@ -29,7 +29,7 @@ const CHROME_H = 82;
 const BM_BAR_H = 28;
 const BM_SEED = [
   { id: 'hz-img', title: '生图站', url: 'https://design.haizhuai.art', icon: 'image' },
-  { id: 'hz-api', title: '中转站', url: 'https://api.haizhuai.art', icon: 'relay' },
+  { id: 'hz-api', title: '中转站', url: 'https://api.haizhuai.xyz', icon: 'relay' },
   { id: 'hz-blog', title: 'HaizhuAI中文社区', url: 'https://blog.haizhuai.art', icon: 'chat' },
   { id: 'hz-nav', title: 'HaizhuAI导航页', url: 'https://start.haizhuai.art', icon: 'compass' }
 ];
@@ -378,7 +378,9 @@ function registerIpc() {
     let dirty = false;
     for (const b of list) {
       const seed = BM_SEED.find(s => s.id === b.id || s.url === b.url);
-      if (seed && b.fav && b.fav.endsWith('/favicon.ico')) { delete b.fav; b.icon = seed.icon; dirty = true; }
+      if (!seed) continue;
+      if (b.fav && b.fav.endsWith('/favicon.ico')) { delete b.fav; b.icon = seed.icon; dirty = true; }
+      if (b.url !== seed.url) { b.url = seed.url; b.title = seed.title; delete b.fav; b.icon = seed.icon; dirty = true; }
     }
     if (dirty) store.set('bookmarks', list);
   }
@@ -557,6 +559,62 @@ app.whenReady().then(async () => {
     onSession: (s, tab) => {
       attachProto(s); if (hub) hub.attach(s);
       if (tab && tab.profile) profiles.bindSession(s, tab.profile);
+    },
+    // in-page context menu — WebContentsView ships no default menu; every
+    // entry must be a real working action (no decorative items).
+    contextMenu: (tab, p) => {
+      const wc = tab.wc;
+      const tc = (k, v) => i18n.t('ctx.' + k, v);
+      const items = [];
+      const sel = (p.selectionText || '').trim();
+      if (p.isEditable) {
+        const f = p.editFlags || {};
+        items.push(
+          { label: tc('undo'), role: 'undo', enabled: !!f.canUndo },
+          { label: tc('redo'), role: 'redo', enabled: !!f.canRedo },
+          { type: 'separator' },
+          { label: tc('cut'), role: 'cut', enabled: !!f.canCut },
+          { label: tc('copy'), role: 'copy', enabled: !!f.canCopy },
+          { label: tc('paste'), role: 'paste', enabled: !!f.canPaste },
+          { label: tc('selectall'), role: 'selectAll' });
+      } else {
+        if (p.linkURL) items.push(
+          { label: tc('openlink'), click: () => tabs.openTab(p.linkURL, true) },
+          { label: tc('copylink'), click: () => clipboard.writeText(p.linkURL) },
+          { type: 'separator' });
+        if (p.mediaType === 'image' && p.srcURL) items.push(
+          { label: tc('openimg'), click: () => tabs.openTab(p.srcURL, true) },
+          { label: tc('copyimg'), click: () => wc.copyImageAt(p.x, p.y) },
+          { label: tc('copyimgaddr'), click: () => clipboard.writeText(p.srcURL) },
+          { label: tc('saveimg'), click: () => wc.downloadURL(p.srcURL) },
+          { type: 'separator' });
+        if ((p.mediaType === 'video' || p.mediaType === 'audio') && p.srcURL) items.push(
+          { label: tc('openav'), click: () => tabs.openTab(p.srcURL, true) },
+          { label: tc('copymedia'), click: () => clipboard.writeText(p.srcURL) },
+          { type: 'separator' });
+        if (sel) items.push(
+          { label: tc('copy'), role: 'copy' },
+          { label: tc('searchsel', { text: sel.length > 24 ? sel.slice(0, 24) + '…' : sel }), click: () => tabs.openTab(sel, true) },
+          { type: 'separator' });
+        const nav = wc.navigationHistory;
+        items.push(
+          { label: tc('back'), enabled: nav ? nav.canGoBack() : wc.canGoBack(), click: () => nav ? nav.goBack() : wc.goBack() },
+          { label: tc('forward'), enabled: nav ? nav.canGoForward() : wc.canGoForward(), click: () => nav ? nav.goForward() : wc.goForward() },
+          { label: tc('reload'), click: () => wc.reload() },
+          { type: 'separator' },
+          { label: tc('savepage'), click: async () => {
+              const r = await dialog.showSaveDialog(win, { defaultPath: (tab.title || 'page') + '.html' });
+              if (!r.canceled && r.filePath) wc.savePage(r.filePath, 'HTMLComplete').catch(() => {});
+            } },
+          { label: i18n.t('menu.viewsource'), click: () => tabs.openTab('view-source:' + wc.getURL(), true) },
+          { label: tc('inspect'), click: () => wc.openDevTools({ mode: 'right' }) });
+      }
+      if (process.env.HZ_DEBUG) console.log('[ctx] media=%s link=%s sel=%d edit=%s items=%d', p.mediaType || '-', !!p.linkURL, sel.length, !!p.isEditable, items.length);
+      // anchor at the click point inside the page view, not the OS cursor —
+      // popup() without x/y uses the physical cursor, which may sit on another
+      // monitor or outside the window entirely.
+      const vb = tab.view.getBounds();
+      if (items.length) Menu.buildFromTemplate(items).popup({ window: win, x: Math.round(vb.x + p.x), y: Math.round(vb.y + p.y) });
     }
   });
   ai = new AIModule(store, null);
@@ -650,6 +708,17 @@ app.whenReady().then(async () => {
       return true;
     });
     ipcMain.handle('dev:resize', (e, w, h) => { win.setSize(w, h); return win.getSize(); });
+    ipcMain.handle('dev:rclick', async (e, x, y) => {
+      const t = tabs && tabs.active;
+      if (!t) return { ok: false };
+      // Windows fires context-menu on right-button RELEASE, so send the full
+      // down/up pair; the menu pops after the up is already consumed.
+      t.wc.sendInputEvent({ type: 'mouseDown', x: Math.round(x), y: Math.round(y), button: 'right', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 40));
+      t.wc.sendInputEvent({ type: 'mouseUp', x: Math.round(x), y: Math.round(y), button: 'right', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 900));
+      return { ok: true };
+    });
     ipcMain.handle('dev:probe', async () => {
       const before = { max: win.isMaximized(), min: win.isMinimized(), maxable: win.isMaximizable(), minable: win.isMinimizable(), resizable: win.isResizable() };
       win.maximize();

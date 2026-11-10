@@ -149,6 +149,7 @@ contextBridge.exposeInMainWorld('hz', {
     shot: n => invoke('dev:shot', n),
     resize: (w, h) => invoke('dev:resize', w, h),
     probe: () => invoke('dev:probe'),
-    drag: (x, y, dx, dy) => invoke('dev:drag', x, y, dx, dy)
+    drag: (x, y, dx, dy) => invoke('dev:drag', x, y, dx, dy),
+    rclick: (x, y) => invoke('dev:rclick', x, y)
   }
 });

@@ -54,6 +54,7 @@ class Tab {
       wc.on('render-process-gone', (e, d) => console.log('[tab', this.id, '] GONE', JSON.stringify(d)));
     }
     wc.on('did-navigate-in-page', (e, url) => { this.url = url; m.broadcast('tab-updated', this.id, this.serialize()); });
+    wc.on('context-menu', (e, p) => m.onContextMenu(this, p));
     wc.on('did-fail-load', (e, code, desc, url, isMain) => { if (isMain) m.broadcast('tab-updated', this.id, this.serialize()); });
     if (!process.env.HZ_BARE) wc.setWindowOpenHandler(({ url, frameName }) => {
       if (url === 'about:blank' || frameName === '_blank') m.openTab(url, true);
@@ -242,6 +243,9 @@ class TabManager {
   onNavigate(tab, url) {
     this.ctx.history && this.ctx.history.add(url, tab.title);
     this.ctx.sniffer && this.ctx.sniffer.clear(tab.wc.id);
+  }
+  onContextMenu(tab, params) {
+    this.ctx.contextMenu && this.ctx.contextMenu(tab, params);
   }
 }
 

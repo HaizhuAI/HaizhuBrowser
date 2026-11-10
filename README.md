@@ -12,9 +12,17 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 |---|---|
 | <img src="docs/screenshots/newtab.jpg" width="640"> | <img src="docs/screenshots/chrome.jpg" width="640"> |
 
-| Settings (`haizhu://settings`) |
-|---|
-| <img src="docs/screenshots/settings.jpg" width="640"> |
+| Settings (`haizhu://settings`) | Page context menu |
+|---|---|
+| <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
+
+| Android — main | Android — menu |
+|---|---|
+| <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
+
+| Android — dev capture | Android — tabs |
+|---|---|
+| <img src="docs/screenshots/android/dev-capture.png" height="400"> | <img src="docs/screenshots/android/tabs.png" height="400"> |
 
 ## Features
 

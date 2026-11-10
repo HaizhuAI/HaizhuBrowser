@@ -10,6 +10,8 @@ import android.webkit.*
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -61,14 +63,20 @@ class MainActivity : AppCompatActivity() {
             }
             webView.addJavascriptInterface(
                 UserscriptEngine.Bridge(scripts, webView) { u -> openTab(u, true) }, "__hzgm")
+            // fingerprint persona bridge — callable synchronously at true
+            // document-start; returns "" while spoofing is off
+            webView.addJavascriptInterface(object {
+                @JavascriptInterface
+                fun config(host: String): String = Fingerprint.configJson(host) ?: ""
+            }, "__hzBoot")
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                WebViewCompat.addDocumentStartJavaScript(webView, Fingerprint.BOOT_JS, setOf("*"))
+            }
             webView.webViewClient = HzClient(this)
             webView.webChromeClient = HzChrome(this)
             webView.setDownloadListener { url, ua, cd, mime, _ ->
                 Sniffer.check(url, mime)
                 try { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) } catch (_: Exception) {}
-            }
-            if (incognito) {
-                CookieManager.getInstance().setAcceptCookie(false)
             }
         }
     }
@@ -92,6 +100,8 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread { toast("Userscript installed"); showScripts() }
                     }
                 }.start()
+                // suppress the raw download/navigation — install is handled
+                return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
             }
             return null
         }
@@ -182,6 +192,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun activateTab(t: HzTab) {
         tabs.forEach { it.webView.visibility = if (it == t) View.VISIBLE else View.GONE }
+        // CookieManager is a process-wide singleton — an incognito tab only
+        // suppresses cookies while it is the foreground tab; normal tabs get
+        // cookies back the moment they are active again.
+        CookieManager.getInstance().setAcceptCookie(!t.incognito)
         active = t
         omni.setText(if (t.url == "about:blank") "" else t.url)
         refreshTabs()
@@ -228,6 +242,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 
+    /** WebView does not implement the view-source: scheme — fetch the page
+     *  through the OkHttp stack and show it in a monospace dialog instead. */
+    private fun showSource(u: String) {
+        val tv = TextView(this).apply {
+            typeface = android.graphics.Typeface.MONOSPACE; textSize = 10f
+            setTextIsSelectable(true); setPadding(24, 16, 24, 16)
+            setTextColor(0xFFe6edf3.toInt())
+        }
+        AlertDialog.Builder(this).setTitle("view-source:$u")
+            .setView(ScrollView(this).apply { addView(tv) })
+            .setNegativeButton("Close", null).show()
+        tv.text = "loading…"
+        Thread {
+            val src = runCatching {
+                Net.client.newCall(okhttp3.Request.Builder().url(u).build()).execute().body!!.string()
+            }.getOrElse { "error: ${it.message}" }
+            runOnUiThread { tv.text = src }
+        }.start()
+    }
+
     private fun showMenu() {
         val items = arrayOf(
             "New tab", "New anonymous tab", "Dev panel",
@@ -244,13 +278,13 @@ class MainActivity : AppCompatActivity() {
                 3 -> { captureOn.set(!captureOn.get()); toast("capture ${if (captureOn.get()) "on" else "off"}") }
                 4 -> {
                     Fingerprint.enabled = !Fingerprint.enabled
-                    if (!Fingerprint.enabled) Fingerprint.rotate()
+                    if (Fingerprint.enabled) Fingerprint.rotate()
                     toast("fingerprint ${if (Fingerprint.enabled) "on" else "off"}")
                 }
                 5 -> showPanel("proxy")
                 6 -> { adblock.enabled = !adblock.enabled; toast("adblock ${if (adblock.enabled) "on" else "off"}") }
                 7 -> { active?.webView?.clearCache(true); CookieManager.getInstance().removeAllCookies(null); toast("cleared") }
-                8 -> active?.webView?.loadUrl("view-source:" + active?.url)
+                8 -> active?.let { showSource(it.url) }
             }
         }.show()
     }
@@ -485,7 +519,23 @@ class MainActivity : AppCompatActivity() {
                 "dom_query" -> jsEval("return JSON.stringify(Array.from(document.querySelectorAll(${JSONObject.quote(a.getString("selector"))})).slice(0,15).map(e=>({tag:e.tagName,text:(e.innerText||'').slice(0,80),href:e.href||null})))")
                 "click" -> jsEval("const e=document.querySelector(${JSONObject.quote(a.getString("selector"))});if(!e)return 'not found';e.scrollIntoView({block:'center'});e.click();return 'clicked'")
                 "fill" -> jsEval("const e=document.querySelector(${JSONObject.quote(a.getString("selector"))});if(!e)return 'not found';e.value=${JSONObject.quote(a.getString("value"))};e.dispatchEvent(new Event('input',{bubbles:true}));return 'filled'")
-                "screenshot" -> "(android: use system screenshot)"
+                "screenshot" -> {
+                    val latch = java.util.concurrent.CountDownLatch(1)
+                    val out = arrayOf("error")
+                    runOnUiThread {
+                        try {
+                            val bmp = Bitmap.createBitmap(wv.width, wv.height, Bitmap.Config.ARGB_8888)
+                            wv.draw(android.graphics.Canvas(bmp))
+                            val f = java.io.File(getExternalFilesDir("shots") ?: filesDir,
+                                "shot_${System.currentTimeMillis()}.png")
+                            java.io.FileOutputStream(f).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                            out[0] = f.absolutePath
+                        } catch (e: Exception) { out[0] = "error: ${e.message}" }
+                        latch.countDown()
+                    }
+                    latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                    out[0]
+                }
                 else -> "unknown tool"
             }.toString()
         } catch (e: Exception) { "error: ${e.message}" }

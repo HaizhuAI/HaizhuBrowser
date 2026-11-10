@@ -11,10 +11,13 @@ import java.net.URL
 class Adblock(private val ctx: Context) {
     private val dir = File(ctx.filesDir, "adblock").apply { mkdirs() }
     var enabled = true
-    var blocked = 0
 
     private data class Rule(val re: Regex, val exception: Boolean, val types: Set<String>?, val domains: Set<String>?)
-    private val rules = mutableListOf<Rule>()
+    // copy-on-write snapshot: shouldInterceptRequest iterates on WebView's
+    // I/O thread while compile() rebuilds on a worker thread — a shared
+    // mutableListOf crashes with ConcurrentModificationException.
+    @Volatile private var rules: List<Rule> = emptyList()
+    @Volatile var blocked = 0
 
     private val lists = mapOf(
         "easylist" to "https://easylist.to/easylist/easylist.txt",
@@ -38,13 +41,14 @@ class Adblock(private val ctx: Context) {
     }
 
     fun compile() {
-        rules.clear()
+        val built = mutableListOf<Rule>()
         dir.listFiles { f -> f.name.endsWith(".txt") }?.forEach { f ->
-            f.forEachLine { line -> addRule(line.trim()) }
+            f.forEachLine { line -> addRule(built, line.trim()) }
         }
+        rules = built
     }
 
-    fun addRule(raw: String) {
+    private fun addRule(list: MutableList<Rule>, raw: String) {
         var line = raw
         if (line.isEmpty() || line.startsWith("!") || line.startsWith("[") || line.contains("##") || line.contains("#@#")) return
         var exception = false
@@ -74,7 +78,7 @@ class Adblock(private val ctx: Context) {
                 else -> Regex(globRe(line).replace("\\^", "[^\\w\\-_.%]"), RegexOption.IGNORE_CASE)
             }
         } catch (_: Exception) { return }
-        rules.add(Rule(re, exception, types?.toSet(), domains?.toSet()))
+        list.add(Rule(re, exception, types?.toSet(), domains?.toSet()))
     }
 
     private fun globRe(s: String): String {

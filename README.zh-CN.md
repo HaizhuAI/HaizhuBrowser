@@ -12,9 +12,17 @@
 |---|---|
 | <img src="docs/screenshots/newtab.jpg" width="640"> | <img src="docs/screenshots/chrome.jpg" width="640"> |
 
-| 设置页（`haizhu://settings`） |
-|---|
-| <img src="docs/screenshots/settings.jpg" width="640"> |
+| 设置页（`haizhu://settings`） | 网页右键菜单 |
+|---|---|
+| <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
+
+| 安卓 — 主界面 | 安卓 — 菜单 |
+|---|---|
+| <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
+
+| 安卓 — 抓包面板 | 安卓 — 多标签 |
+|---|---|
+| <img src="docs/screenshots/android/dev-capture.png" height="400"> | <img src="docs/screenshots/android/tabs.png" height="400"> |
 
 ## 功能总览
 

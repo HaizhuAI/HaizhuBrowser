@@ -2,6 +2,18 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.6.1] — 2025-11-10
+
+### Fixed / 修复
+- **网页内右键无反应（Windows 桌面）** — WebContentsView 无默认菜单：页面 webContents 注册 `context-menu` → 主进程构建上下文相关原生菜单（编辑=撤销/剪/贴，链接=新标签打开/复制，图片/媒体=打开/复制/保存，选中=复制/搜索，页面=后退/前进/刷新/另存/查看源码/检查），四语言键；菜单锚定页内点击点 `view.bounds+p.x/p.y`（修复多屏/光标不在窗内时菜单弹到屏幕外）
+- **默认书签更新** — 中转站 `api.haizhuai.art` → `api.haizhuai.xyz`，存量书签自动迁移
+- **Android 启动崩溃** — `Adblock` 规则表后台编译与 WebView 拦截线程共享可变 ArrayList → `ConcurrentModificationException`（FATAL at Adblock.kt:89）；改为新列表编译+原子引用交换，`test()` 读快照
+- **Android 一批真 bug** — 无痕 `setAcceptCookie(false)` 污染全局 CookieManager（改在 activateTab 按当前标签切换）；`view-source:` 菜单项死掉（WebView 不支持该协议，改 OkHttp 拉源码弹窗）；指纹菜单逻辑反了（off 时才 rotate → 改正）；指纹注入从 onPageStarted 竞速改为 `WebViewCompat.addDocumentStartJavaScript` 真·文档起始；user.js 安装后还继续下载（补拦截返回）
+
+### Verified / 实测
+- 打包 exe：合成右键 → `[ctx] items=7` + 原生菜单截图（点击点锚定、中文本地化）
+- devin-vm 远程模拟器（r35）：安装→启动→DDG/Guardian/BBC 导航→多标签→菜单→capture on→Dev 面板请求列表；logcat `FATAL EXCEPTION` 计数 **0**（修复前必崩）
+
 ## [1.6.0] — 2025-11-10
 
 ### Design / 设计更新（haizhu-codex-design 设计语言移植）
