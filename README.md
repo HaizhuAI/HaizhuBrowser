@@ -1,8 +1,20 @@
 # Haizhu Browser
 
+<p align="center"><img src="docs/screenshots/logo.png" width="96" alt="Haizhu logo"></p>
+
 A high-performance, developer- and geek-oriented **all-in-one browser** — packet capture, proxy profiles, fingerprint spoofing, Chrome extensions, userscripts, media resource sniffer, and a built-in AI agent — across **Windows, Linux and Android**.
 
 [中文 README](README.zh-CN.md)
+
+## Screenshots
+
+| New tab (Bing wallpaper NTP) | Chrome strip + bookmark bar |
+|---|---|
+| <img src="docs/screenshots/newtab.jpg" width="640"> | <img src="docs/screenshots/chrome.jpg" width="640"> |
+
+| Settings (`haizhu://settings`) |
+|---|
+| <img src="docs/screenshots/settings.jpg" width="640"> |
 
 ## Features
 

@@ -1,8 +1,20 @@
 # Haizhu Browser 海柱浏览器
 
+<p align="center"><img src="docs/screenshots/logo.png" width="96" alt="海柱 logo"></p>
+
 面向开发者与极客的**高性能一体化浏览器**——抓包调试、代理、指纹伪装、浏览器扩展、油猴脚本、资源嗅探抓取、内置 AI 助手与 Agent 自动化——覆盖 **Windows、Linux、Android** 三端。
 
 [English README](README.md)
+
+## 截图
+
+| 新标签页（必应每日壁纸） | Chrome 条 + 书签栏 |
+|---|---|
+| <img src="docs/screenshots/newtab.jpg" width="640"> | <img src="docs/screenshots/chrome.jpg" width="640"> |
+
+| 设置页（`haizhu://settings`） |
+|---|
+| <img src="docs/screenshots/settings.jpg" width="640"> |
 
 ## 功能总览
 
