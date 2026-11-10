@@ -128,5 +128,9 @@
   "set.mcp.copy": "コピー",
   "set.mcp.copied": "コピー済み",
   "set.mcp.on": "実行中",
-  "set.mcp.off": "停止"
+  "set.mcp.off": "停止",
+  "st.sec": "人間検証への対応",
+  "st.desc": "本物の Chrome ベース面（UA + UA-CH + chrome オブジェクト + プラグイン + パーミッション整合）は常時有効。監査はアクティブタブを一般的なアンチボット検査に照合。ソルバーは人間の軌跡で Turnstile チェックボックスをクリック。",
+  "st.audit": "アンチボット監査",
+  "st.solve": "Turnstile 突破"
 }

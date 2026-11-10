@@ -37,6 +37,9 @@ class Tab {
       this.profile.lastUsed = Date.now();
       this.fpSetup = this.setupCdpFp();
     }
+    // Baseline anti-bot surface via CDP (all frames incl. cross-origin
+    // challenge iframes) — skip internal haizhu:// pages.
+    this.stealthSetup = (!isNtp && manager.ctx.stealth) ? manager.ctx.stealth.attachTab(this) : Promise.resolve();
     this.favIconUrl = null;
     this.wire();
   }
@@ -199,8 +202,8 @@ class TabManager {
     tab.wc.on('dom-ready', () => tab.injectUserscripts('document-end').then(() => tab.injectUserscripts('document-idle')));
     if (active) this.activate(tab.id); else this.layout();
     if (tab.pendingUrl) {
-      if (tab.fpSetup) tab.fpSetup.finally(() => { if (!tab.wc.isDestroyed()) tab.wc.loadURL(tab.pendingUrl); });
-      else tab.wc.loadURL(tab.pendingUrl);
+      const gate = Promise.allSettled([tab.fpSetup, tab.stealthSetup]);
+      gate.finally(() => { if (!tab.wc.isDestroyed()) tab.wc.loadURL(tab.pendingUrl); });
     }
     this.broadcast('tab-added', tab.serialize());
     return tab;

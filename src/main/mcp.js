@@ -96,7 +96,11 @@ const SCHEMAS = [
   { name: 'list_scripts', desc: 'Installed userscripts matching the tab URL', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } } } },
   { name: 'bookmarks', desc: 'List bookmarks', inputSchema: { type: 'object', properties: {} } },
   { name: 'history', desc: 'Recent history entries', inputSchema: { type: 'object', properties: { limit: { type: 'number' } } } },
-  { name: 'ai_chat', desc: 'Ask the built-in AI (Duck.ai or configured endpoint). messages=[{role,content}]', inputSchema: { type: 'object', properties: { messages: { type: 'array', items: { type: 'object' } }, provider: { type: 'string' }, model: { type: 'string' } }, required: ['messages'] } }
+  { name: 'ai_chat', desc: 'Ask the built-in AI (Duck.ai or configured endpoint). messages=[{role,content}]', inputSchema: { type: 'object', properties: { messages: { type: 'array', items: { type: 'object' } }, provider: { type: 'string' }, model: { type: 'string' } }, required: ['messages'] } },
+  { name: 'stealth_audit', desc: 'Anti-bot surface selftest — webdriver/chrome/plugins/UA-CH/permissions/WebGL etc → per-check pass/FAIL', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } } } },
+  { name: 'human_click', desc: 'Click at page coords with trusted human-like bezier trajectory + jitter timing', inputSchema: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, tabId: { type: 'number' } }, required: ['x', 'y'] } },
+  { name: 'human_type', desc: 'Type text into the focused element with per-key human delays (trusted events)', inputSchema: { type: 'object', properties: { text: { type: 'string' }, tabId: { type: 'number' } }, required: ['text'] } },
+  { name: 'solve_turnstile', desc: 'Best-effort Cloudflare Turnstile/managed-challenge pass — locates the challenge iframe, human-clicks the checkbox zone, polls for token/cf_clearance', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, timeout: { type: 'number' } } } }
 ];
 
 class McpServer {
@@ -280,6 +284,10 @@ class McpServer {
       t.wc.loadURL(u);
       return text('navigated ' + u);
     }
+    if (name === 'stealth_audit') return text(await c.stealth.audit(tab));
+    if (name === 'human_click') return text(await c.stealth.humanClick(tab.wc, args.x, args.y));
+    if (name === 'human_type') return text(await c.stealth.humanType(tab.wc, args.text));
+    if (name === 'solve_turnstile') return text(await c.stealth.solveTurnstile(tab, args.timeout || 15000));
     if (name === 'screenshot') {
       const img = await tab.wc.capturePage();
       return { content: [

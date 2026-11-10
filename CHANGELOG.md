@@ -2,6 +2,33 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.8.0] — 2025-11-11
+
+### Added / 新增 — 人机验证应对体系（真 Chrome 基线层，常开）
+调研 undetected-chromedriver / puppeteer-extra-stealth / rebrowser-patches / nodriver 的公开手段后按 Electron 架构移植，`src/main/stealth.js`：
+
+- **线级身份层**——每个会话重写 `User-Agent` + `Sec-CH-UA`/`Sec-CH-UA-Mobile`/`Sec-CH-UA-Platform`(+Full-Version-List) 为真 Chrome 140 品牌串，清除 Electron 默认泄漏的 `Electron/x.y` UA/CH 品牌；`Accept-Language` 兜底；环境标签的 persona 头覆写保持最高优先级
+- **JS 基线面**（CDP `Page.addScriptToEvaluateOnNewDocument`，document-start、**全 frame 含跨域 challenge iframe、零 DOM 痕迹**）——`window.chrome` 完整面（app/runtime【仅安全源】/csi/loadTimes，合并进 Electron 空 stub）、plugins↔mimeTypes 交叉引用真类原型（5 个 PDF Viewer 插件）、permissions↔Notification 矛盾面复刻真 Chrome 怪癖（HTTP 下 query=prompt 而 permission=denied）、`webdriver=false`、`userAgentData` 品牌覆写、`vendor=Google Inc.`、`pdfViewerEnabled`、`doNotTrack`、全量 `toString` native 掩码、软渲 WebGL 按平台遮罩为主流核显串（SwiftShader/llvmpipe → UHD 630/620）
+- **真人输入引擎**——`webContents.sendInputEvent` trusted 管线：贝塞尔曲线 mouseMove + ease-out 减速 + ±2px 落点抖动 + 60–160ms 悬停 + 45–120ms 按压时长；`humanType` 55–175ms 键间延迟
+- **Turnstile 求解器**——穿透 shadowRoot 递归定位 challenge iframe/容器 → 真人轨迹点击复选框区 → 轮询 `cf-turnstile-response`/`cf_clearance`
+- **反爬自检**——24 项探针（webdriver/chrome/plugins/UA-CH/权限/WebGL/屏幕/时区等）逐项 pass/FAIL/WARN
+- **面板**：指纹页新增「人机验证应对」——反爬自检 + 过 Turnstile 两个真实按钮，四语言键
+- **MCP +4 工具（共 40）**：`stealth_audit` / `human_click` / `human_type` / `solve_turnstile`
+- `--disable-blink-features=AutomationControlled` 启动开关
+- **刻意规避**（rebrowser/DataDome 公开研究）：不调用 `Runtime.enable`、不开 `--remote-debugging-port`——两者均为 CF 在用的 5 行 JS 探针检测向量
+
+### Changed / 修复
+- **`<script>` bootstrap 注入收窄到顶层 frame**——子 frame 注入在跨域 iframe（CF challenge widget）里可被 MutationObserver 观测；子 frame 改由 CDP 全 frame 无痕迹注入覆盖
+- Electron 的 `window.chrome` 空 stub 检测出并合并（此前 `chrome_obj` 探测失败）
+- 插件/ mimeType 交叉引用修复（每插件独立 mime，`enabledPlugin` 回指自身）
+
+### Verified / 实测（打包产物）
+- `stealth_audit` @ bot.sannysoft.com：**24/24 全绿**（含 WebGL 遮罩生效）
+- httpbin/headers 回显：`Sec-Ch-Ua:"Not_A Brand";v="24","Chromium";v="140","Google Chrome";v="140"` + Platform Windows + 干净 UA
+- **nowsecure.nl（nodriver 同款 CF 测试站）：无挑战页直出正文**（"NOWSECURE BY NODRIVER" 渲染）— 静默信任级通过
+- nopecha CF managed challenge：验证器持续循环——判定为云机房 IP 信誉 + 软渲光栅输出（字符串可遮、像素不可伪），非浏览器侧信号
+- MCP `tools/list`：40 工具；humanClick/audit/solve 全链路实调
+
 ## [1.7.0] — 2025-11-11
 
 ### Added / 新增 — MCP 智能体接入（Windows + Linux 桌面版）

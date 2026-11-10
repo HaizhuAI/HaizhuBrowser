@@ -85,6 +85,13 @@
       <button id="fpRotate">Rotate now</button></div>
       <div id="fpPersona"></div>
       <p class="dim">Spoofs navigator.*, screen.*, canvas, WebGL renderer, audio, timezone, WebRTC hints. Applied at document-start in the main world.</p>
+      <h3 class="sec" data-i18n="st.sec">Human-verification readiness</h3>
+      <p class="dim" data-i18n="st.desc">Baseline real-Chrome surface (UA + UA-CH + chrome object + plugins + permissions) is always on. Audit checks the active tab against common anti-bot probes; solver clicks the Turnstile checkbox with a human trajectory.</p>
+      <div class="row">
+        <button id="stAudit" data-i18n="st.audit">Anti-bot audit</button>
+        <button id="stSolve" data-i18n="st.solve">Solve Turnstile</button>
+      </div>
+      <pre id="stOut" class="dim" style="white-space:pre-wrap;margin-top:6px"></pre>
     </div>
     <!-- ENVIRONMENTS (isolated fingerprint + proxy profiles) -->
     <div class="page" id="p-env">

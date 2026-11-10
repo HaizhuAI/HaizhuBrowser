@@ -16,9 +16,13 @@
 |---|---|
 | <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
 
-| MCP / 智能体接入（设置页） |  |
+| MCP / 智能体接入（设置页） | 反爬自检（sannysoft 24/24） |
 |---|---|
-| <img src="docs/screenshots/mcp-settings.png" width="640"> |  |
+| <img src="docs/screenshots/mcp-settings.png" width="640"> | <img src="docs/screenshots/stealth-audit.jpg" width="640"> |
+
+| CF 站点静默通过 | CF 人机验证页（组件运行中） |
+|---|---|
+| <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
 | 安卓 — 主界面 | 安卓 — 菜单 |
 |---|---|
@@ -49,6 +53,7 @@
 | **新标签页** | Edge 式沉浸 NTP：必应每日壁纸、毛玻璃搜索、快捷瓷贴 | 简易 NTP |
 | **设置页** | `haizhu://settings`——外观、语言、启动、搜索引擎、隐私、MCP、关于 | — |
 | **MCP 服务** | 内嵌 **Model Context Protocol** 端点——Claude Desktop / Codex / 任意 MCP 智能体可直接驱动整台浏览器：标签、导航、DOM、Cookie、抓包+HAR、资源嗅探、指纹环境、代理、广告拦截、油猴、AI | — |
+| **人机验证应对** | 常开真 Chrome 基线（线级 UA + UA-CH、chrome 对象、插件↔mimeType、权限↔Notification 怪癖、userAgentData、软渲 WebGL 遮罩），CDP 全 frame 注入含跨域挑战 iframe、零 DOM 痕迹；反爬自检 + Turnstile 求解器 + trusted 真人轨迹输入 | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
 
 ## MCP —— 让任意智能体驱动浏览器
@@ -90,7 +95,7 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
   } } }
   ```
 
-**工具面（36 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
+**工具面（40 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate`（地址栏式 URL+搜索词归一化）/ `get_url` /
 `page_text` / `page_html` / `dom_query` / `click` / `fill` / `run_js` /
 `wait` / `screenshot`（真 PNG 图像块）/ `start_capture` / `stop_capture` /
@@ -98,11 +103,13 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
 `download_resource` / `list_cookies` / `set_cookie` / `delete_cookie` /
 `storage_get` / `list_profiles` / `launch_profile` / `profile_persona` /
 `proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
-`list_scripts` / `bookmarks` / `history` / `ai_chat`。
+`list_scripts` / `bookmarks` / `history` / `ai_chat` /
+`stealth_audit` / `human_click` / `human_type` / `solve_turnstile`。
 
 典型智能体会话：`start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` 完成一次完整抓包；`dom_query` → `click` →
-`fill` → `screenshot` 完成页面自动化。
+`fill` → `screenshot` 完成页面自动化；`stealth_audit` → `solve_turnstile` →
+`human_click`/`human_type` 以 trusted 真人轨迹应对反爬面。
 
 ## 逆向渊源
 

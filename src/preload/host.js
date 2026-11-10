@@ -48,6 +48,10 @@ contextBridge.exposeInMainWorld('hz', {
     remove: id => invoke('proxy:remove', id),
     set: id => invoke('proxy:set', id)
   },
+  stealth: {
+    audit: () => invoke('stealth:audit'),
+    solve: () => invoke('stealth:solve')
+  },
   fp: {
     get: () => invoke('fp:get'),
     set: s => invoke('fp:set', s),

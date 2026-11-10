@@ -128,5 +128,9 @@
   "set.mcp.copy": "Copy",
   "set.mcp.copied": "Copied",
   "set.mcp.on": "Running",
-  "set.mcp.off": "Stopped"
+  "set.mcp.off": "Stopped",
+  "st.sec": "Human-verification readiness",
+  "st.desc": "Baseline real-Chrome surface (UA + UA-CH + chrome object + plugins + permissions) is always on. Audit checks the active tab against common anti-bot probes; solver clicks the Turnstile checkbox with a human trajectory.",
+  "st.audit": "Anti-bot audit",
+  "st.solve": "Solve Turnstile"
 }

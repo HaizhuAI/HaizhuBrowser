@@ -7,6 +7,11 @@ const { ipcRenderer } = require('electron');
 
 // ---- 1. early main-world injection ----
 (function injectBootstrap() {
+  // TOP FRAME ONLY — inserting/removing a <script> inside a cross-origin
+  // iframe (e.g. the Cloudflare challenge widget) is observable via
+  // MutationObserver. Subframes get the stealth surface invisibly through
+  // CDP Page.addScriptToEvaluateOnNewDocument instead.
+  if (window.top !== window) return;
   const arg = process.argv.find(a => a.startsWith('--hz-bootstrap-file='));
   if (!arg) return;
   let src;

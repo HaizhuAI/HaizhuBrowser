@@ -128,5 +128,9 @@
   "set.mcp.copy": "复制",
   "set.mcp.copied": "已复制",
   "set.mcp.on": "运行中",
-  "set.mcp.off": "未运行"
+  "set.mcp.off": "未运行",
+  "st.sec": "人机验证应对",
+  "st.desc": "真 Chrome 基线面（UA + UA-CH + chrome 对象 + 插件 + 权限一致性）常开。自检按常见反爬探测逐项检查当前标签；过验证按钮以真人轨迹点击 Turnstile 复选框。",
+  "st.audit": "反爬自检",
+  "st.solve": "过 Turnstile"
 }

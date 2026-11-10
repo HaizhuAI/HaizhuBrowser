@@ -17,6 +17,7 @@ const { AIModule, cookieApi, DUCK_MODELS, OpenAICompat } = require('./ai');
 const { TabManager } = require('./tabs');
 const { I18n } = require('./i18n');
 const { McpServer } = require('./mcp');
+const { Stealth } = require('./stealth');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -25,6 +26,10 @@ app.disableHardwareAcceleration();
 // WebRTC: never advertise real local/public IPs via host candidates — the
 // fingerprint layer rewrites advertised candidates to a seeded private IP.
 app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_interface_only');
+// Stealth baseline: Chromium sets navigator.webdriver under automation —
+// we never automate the renderer, but keep the standard kill-switch so no
+// blink feature ever flips it on.
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 
 const CHROME_H = 82;
 const BM_BAR_H = 28;
@@ -43,7 +48,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -281,6 +286,8 @@ function registerIpc() {
   ipcMain.handle('fp:set', (e, s) => { store.set('fingerprint', Object.assign({}, fingerprint.settings, s)); return true; });
   ipcMain.handle('fp:rotate', () => { fingerprint.rotate(); return true; });
   ipcMain.handle('fp:persona', () => fingerprint.personaFor('preview'));
+  ipcMain.handle('stealth:audit', () => tabs && tabs.active ? stealth.audit(tabs.active) : null);
+  ipcMain.handle('stealth:solve', () => tabs && tabs.active ? stealth.solveTurnstile(tabs.active) : null);
 
   // profiles — isolated fingerprint+proxy environments (bitbrowser-style)
   ipcMain.handle('prof:list', () => profiles.profiles.map(p => ({
@@ -556,15 +563,17 @@ app.whenReady().then(async () => {
   profiles = new ProfileManager(store, proxy, fingerprint);
   adblock = new AdBlock(store);
   extMgr = new ExtensionManager(store);
+  stealth = new Stealth();
 
   tabs = new TabManager({
     get win() { return win; },
-    fingerprint, scripts, captures, sniffer, adblock, proxy, store,
+    fingerprint, scripts, captures, sniffer, adblock, proxy, store, stealth,
     history, broadcast,
     layoutPanel,
     profiles,
     onSession: (s, tab) => {
       attachProto(s); if (hub) hub.attach(s);
+      if (stealth) stealth.attachSession(s);
       if (tab && tab.profile) profiles.bindSession(s, tab.profile);
     },
     // in-page context menu — WebContentsView ships no default menu; every
@@ -627,7 +636,7 @@ app.whenReady().then(async () => {
   ai = new AIModule(store, null);
 
   mcp = new McpServer(store, {
-    tabs, ai, captures, sniffer, m3u8, proxy, profiles, adblock, scripts,
+    tabs, ai, captures, sniffer, m3u8, proxy, profiles, adblock, scripts, stealth,
     history: l => history.list(l),
     bookmarks: () => store.get('bookmarks', []),
     applyNetworkStack,
@@ -647,6 +656,7 @@ app.whenReady().then(async () => {
       .catch(e => console.error('[us] install', e.message)));
   });
   // profile-bound sessions: rewrite UA + UA-CH + Accept-Language at wire level
+  hub.on('reqHeaders', (d, ses) => stealth.headerRewrite(d, ses)); // baseline Chrome identity, in-place mutation
   hub.on('reqHeaders', (d, ses) => profiles.headerRewrite(d, ses));
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);

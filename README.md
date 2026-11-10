@@ -16,9 +16,13 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 |---|---|
 | <img src="docs/screenshots/settings.jpg" width="640"> | <img src="docs/screenshots/context-menu.png" width="640"> |
 
-| MCP / agent integration (settings) |  |
+| MCP / agent integration (settings) | Anti-bot audit (sannysoft 24/24) |
 |---|---|
-| <img src="docs/screenshots/mcp-settings.png" width="640"> |  |
+| <img src="docs/screenshots/mcp-settings.png" width="640"> | <img src="docs/screenshots/stealth-audit.jpg" width="640"> |
+
+| CF-protected site, silent pass | CF managed challenge (widget live) |
+|---|---|
+| <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
 | Android — main | Android — menu |
 |---|---|
@@ -49,6 +53,7 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **New tab** | Edge-style immersive NTP: Bing daily wallpaper, frosted search, quick-link tiles | Simple NTP |
 | **Settings** | `haizhu://settings` — appearance, language, startup, search engine, privacy, MCP, about | — |
 | **MCP server** | Built-in **Model Context Protocol** endpoint — drive the whole browser from Claude Desktop / Codex / any MCP agent: tabs, navigation, DOM, cookies, capture+HAR, sniffing, environments, proxies, adblock, userscripts, AI | — |
+| **Human-verification readiness** | Always-on real-Chrome baseline (wire UA + UA-CH, chrome object, plugins↔mimeTypes, permissions↔Notification quirk, userAgentData, soft-GL mask) injected via CDP into **all frames incl. challenge iframes**, zero DOM trace; anti-bot selftest + Turnstile solver + trusted human-trajectory input | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
 ## MCP — drive the browser from any agent
@@ -93,7 +98,7 @@ nothing is reachable off-machine.
   } } }
   ```
 
-**Tool surface (36 tools):** `list_tabs` / `new_tab` / `close_tab` /
+**Tool surface (40 tools):** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate` (omnibox-style URL + search normalization) /
 `get_url` / `page_text` / `page_html` / `dom_query` / `click` / `fill` /
 `run_js` / `wait` / `screenshot` (real PNG image block) /
@@ -102,11 +107,14 @@ nothing is reachable off-machine.
 `list_cookies` / `set_cookie` / `delete_cookie` / `storage_get` /
 `list_profiles` / `launch_profile` / `profile_persona` /
 `proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
-`list_scripts` / `bookmarks` / `history` / `ai_chat`.
+`list_scripts` / `bookmarks` / `history` / `ai_chat` /
+`stealth_audit` / `human_click` / `human_type` / `solve_turnstile`.
 
 A typical agent session: `start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` gives you a full sniffed session; `dom_query` →
-`click` → `fill` → `screenshot` drives page automation.
+`click` → `fill` → `screenshot` drives page automation; `stealth_audit` →
+`solve_turnstile` → `human_click`/`human_type` handles anti-bot surfaces with
+trusted human-trajectory input.
 
 ## Reverse-engineering pedigree
 

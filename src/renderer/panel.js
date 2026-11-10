@@ -252,6 +252,19 @@ async function loadFp() {
 $('#fpOn').onchange = () => hz.fp.set({ enabled: $('#fpOn').checked }).then(loadFp);
 $('#fpMode').onchange = () => hz.fp.set({ mode: $('#fpMode').value }).then(loadFp);
 $('#fpRotate').onclick = () => hz.fp.rotate().then(loadFp);
+$('#stAudit').onclick = async () => {
+  $('#stOut').textContent = '…';
+  const r = await hz.stealth.audit();
+  if (!r) { $('#stOut').textContent = 'no active tab'; return; }
+  const bad = Object.entries(r).filter(([, v]) => /^FAIL/i.test(v));
+  $('#stOut').textContent = Object.entries(r).map(([k, v]) => `${/^pass|^skip/i.test(v) ? '✓' : /^FAIL/i.test(v) ? '✗' : '△'} ${k.padEnd(16)} ${v}`).join('\n')
+    + (bad.length ? '' : '\n\n' + 'all green — baseline surface consistent');
+};
+$('#stSolve').onclick = async () => {
+  $('#stOut').textContent = 'solving…';
+  const r = await hz.stealth.solve();
+  $('#stOut').textContent = r ? JSON.stringify(r) : 'no active tab';
+};
 
 // ---------- environments ----------
 async function loadEnv() {
