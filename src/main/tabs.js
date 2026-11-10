@@ -116,6 +116,7 @@ class TabManager {
     const tab = new Tab(this, url, opts);
     this.tabs.set(tab.id, tab);
     this.sessions.add(tab.ses);
+    if (this.ctx.onSession) this.ctx.onSession(tab.ses);
     // Attach the view to the window BEFORE navigating — loading a URL in a
     // detached WebContentsView destabilizes the network service (renderer
     // + utility crash exit 143, observed on Electron 44).

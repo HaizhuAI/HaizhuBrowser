@@ -16,6 +16,7 @@ class TabCapture {
     this.wc = webContents;
     this.dbg = webContents.debugger;
     this.entries = new Map();
+    this.cdpMap = new Map(); // cdp requestId -> entry (twin or own)
     this.order = [];
     this.enabled = false;
     this.listeners = new Set();
@@ -23,37 +24,147 @@ class TabCapture {
   }
   async start() {
     if (this.enabled) return;
-    try { this.dbg.attach('1.3'); } catch (e) { if (!/already attached/.test(e.message)) throw e; }
-    this.dbg.on('message', (t, m, p) => this.onEvent(m, p));
-    await this.dbg.sendCommand('Network.enable', { maxPostDataSize: 1024 * 512 });
-    await this.dbg.sendCommand('Page.enable', {});
     this.enabled = true;
+    // Cross-site navigation swaps the renderer (site isolation) and the
+    // debugger detaches with it — auto re-attach so capture survives it.
+    if (!this._detachHooked) {
+      this._detachHooked = true;
+      this.dbg.on('detach', () => { if (this.enabled) this._attach(); });
+    }
+    // CDP enrichment is best-effort — webRequest ingest is the primary
+    // source, so never let a hung attach block the toggle.
+    this._attach();
+  }
+  async _attach() {
+    if (this._attaching) return;
+    this._attaching = true;
+    try {
+      try { this.dbg.attach('1.3'); } catch (e) { if (!/already attached/.test(e.message)) return; }
+      if (!this._msgHooked) {
+        this._msgHooked = true;
+        this.dbg.on('message', (t, m, p) => this.onEvent(m, p));
+      }
+      const cmd = (n, p) => Promise.race([
+        this.dbg.sendCommand(n, p),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('cdp timeout')), 5000))
+      ]);
+      // Enable domains in parallel with independent timeouts — a lost
+      // response on one (renderer swap eats the reply) must not block
+      // the others.
+      const TEXT_STAGES = ['Document', 'Script', 'Stylesheet', 'XHR', 'Fetch'];
+      await Promise.allSettled([
+        cmd('Network.enable', { maxPostDataSize: 1024 * 512 }),
+        cmd('Page.enable', {}),
+        // Fetch interception: pause text-ish responses so the body can be
+        // pulled before Chromium reclaims it (Network.getResponseBody loses
+        // main-frame docs early). Fiddler-style capture, capture-mode only.
+        cmd('Fetch.enable', {
+          patterns: TEXT_STAGES.map(resourceType => ({ requestStage: 'Response', resourceType }))
+        })
+      ]);
+    } catch (e) { if (process.env.HZ_DEBUG) console.error('[cap] attach', e.message); }
+    finally { this._attaching = false; }
   }
   async stop() {
     if (!this.enabled) return;
-    try { await this.dbg.sendCommand('Network.disable', {}); this.dbg.detach(); } catch (e) {}
     this.enabled = false;
+    try { await this.dbg.sendCommand('Network.disable', {}); await this.dbg.sendCommand('Fetch.disable', {}); this.dbg.detach(); } catch (e) {}
   }
   on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   emit(ev, data) { for (const f of this.listeners) { try { f(ev, data); } catch (e) {} } }
+  // ----- session webRequest ingest (browser-level; sees every request
+  // incl. main frame — immune to renderer/agent quirks) -----
+  static RESTYPE = { mainFrame: 'Document', subFrame: 'Document', stylesheet: 'Stylesheet', script: 'Script', image: 'Image', font: 'Font', object: 'Object', xhr: 'XHR', ping: 'Ping', cspReport: 'CSPReport', media: 'Media', webSocket: 'WebSocket', other: 'Other' };
+  static HTTP_TEXT = { 200: 'OK', 201: 'Created', 204: 'No Content', 206: 'Partial Content', 301: 'Moved Permanently', 302: 'Found', 304: 'Not Modified', 307: 'Temporary Redirect', 308: 'Permanent Redirect', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable' };
+  ingest(phase, d) {
+    if (process.env.HZ_DEBUG && phase === 'before') console.error('[cap-wr]', d.id, d.resourceType, d.method, d.url.slice(0, 60));
+    const key = 'wr' + d.id;
+    let e = this.entries.get(key);
+    switch (phase) {
+      case 'before':
+        e = {
+          id: key, url: d.url, method: d.method,
+          type: TabCapture.RESTYPE[d.resourceType] || 'Other',
+          requestHeaders: null, postData: null,
+          started: d.timestamp / 1e6, wallTime: Date.now() / 1000,
+          status: null, responseHeaders: null, mimeType: '', size: 0,
+          encodedSize: 0, time: 0, body: null, remote: '', cdpId: null
+        };
+        // CDP requestWillBeSent may have arrived first — adopt that entry
+        // (merge its cdpId/enrichment into this wr row, drop the dupe).
+        for (let i = this.order.length - 1; i >= 0 && i > this.order.length - 80; i--) {
+          const c = this.entries.get(this.order[i]);
+          if (c && !String(c.id).startsWith('wr') && c.url === d.url && !c.wrId) {
+            e.cdpId = c.cdpId || c.id;
+            this.cdpMap.set(e.cdpId, e);
+            e.postData = c.postData; e.requestHeaders = c.requestHeaders || e.requestHeaders;
+            e.started = c.started; e.wallTime = c.wallTime;
+            if (c.type && c.type !== 'Other') e.type = c.type;
+            if (c.remote) e.remote = c.remote;
+            c.wrId = key; this.entries.delete(c.id); this.order.splice(i, 1);
+            break;
+          }
+        }
+        if (!this.entries.has(key)) this.order.push(key);
+        this.entries.set(key, e);
+        if (this.order.length > this.max) { const old = this.order.shift(); this.entries.delete(old); }
+        this.emit('request', e);
+        break;
+      case 'sendHeaders': if (e) { e.requestHeaders = d.requestHeaders; } break;
+      case 'headers': if (e) {
+        e.status = d.statusCode; e.statusText = TabCapture.HTTP_TEXT[d.statusCode] || '';
+        e.responseHeaders = d.responseHeaders; e.fromCache = d.fromCache;
+        const ct = Object.entries(d.responseHeaders || {}).find(([k]) => /content-type/i.test(k));
+        if (ct) e.mimeType = String(ct[1][0] || ct[1]).split(';')[0].trim();
+        this.emit('response', e);
+      } break;
+      case 'redirect': if (e) { e.status = d.statusCode; e.redirectURL = d.redirectURL; } break;
+      case 'completed': if (e) {
+        e.time = d.timestamp / 1e6 - e.started;
+        if (d.ip) e.remote = d.ip;
+        e.fromCache = d.fromCache;
+        this.emit('finished', e);
+      } break;
+      case 'error': if (e) { e.failed = true; e.errorText = d.error; this.emit('failed', e); } break;
+    }
+  }
+  // Correlate a CDP request to its webRequest twin (same url, still unlinked).
+  _linkCdp(p) {
+    const url = p.request.url;
+    for (let i = this.order.length - 1; i >= 0 && i > this.order.length - 60; i--) {
+      const e = this.entries.get(this.order[i]);
+      if (e && !e.cdpId && e.url === url && String(e.id).startsWith('wr')) { e.cdpId = p.requestId; this.cdpMap.set(p.requestId, e); return e; }
+    }
+    return null;
+  }
   onEvent(method, p) {
+    if (process.env.HZ_DEBUG) console.error('[cap-ev]', method, (p.requestId || '').slice(0, 8), (p.request && p.request.url || (p.response && p.response.url) || '').slice(0, 70));
     switch (method) {
       case 'Network.requestWillBeSent': {
-        const e = {
+        // merge into webRequest twin when present (enriches postData/timing)
+        const twin = this._linkCdp(p);
+        const e = twin || {
           id: p.requestId, url: p.request.url, method: p.request.method,
           type: p.type || 'Other', requestHeaders: p.request.headers,
           postData: p.request.postData, started: p.timestamp, wallTime: p.wallTime,
           status: null, responseHeaders: null, mimeType: '', size: 0,
-          encodedSize: 0, time: 0, body: null, remote: p.request.remoteIPAddress || ''
+          encodedSize: 0, time: 0, body: null, remote: p.request.remoteIPAddress || '', cdpId: p.requestId
         };
-        this.entries.set(p.requestId, e);
-        this.order.push(p.requestId);
-        if (this.order.length > this.max) { const old = this.order.shift(); this.entries.delete(old); }
+        if (twin) {
+          twin.postData = p.request.postData || twin.postData;
+          twin.requestHeaders = p.request.headers || twin.requestHeaders;
+          twin.started = p.timestamp; twin.wallTime = p.wallTime;
+          if (p.type) twin.type = p.type;
+          if (p.request.remoteIPAddress) twin.remote = p.request.remoteIPAddress;
+        }
+        this.entries.set(e.id, e);
+        this.cdpMap.set(p.requestId, e);
+        if (!twin) { this.order.push(e.id); if (this.order.length > this.max) { const old = this.order.shift(); this.entries.delete(old); } }
         this.emit('request', e);
         break;
       }
       case 'Network.responseReceived': {
-        const e = this.entries.get(p.requestId); if (!e) break;
+        const e = this.cdpMap.get(p.requestId) || this.entries.get(p.requestId); if (!e) break;
         e.status = p.response.status; e.statusText = p.response.statusText;
         e.responseHeaders = p.response.headers; e.mimeType = p.response.mimeType;
         e.remote = p.response.remoteIPAddress + ':' + p.response.remotePort;
@@ -63,30 +174,88 @@ class TabCapture {
         break;
       }
       case 'Network.dataReceived': {
-        const e = this.entries.get(p.requestId); if (!e) break;
+        const e = this.cdpMap.get(p.requestId) || this.entries.get(p.requestId); if (!e) break;
         e.encodedSize += p.dataLength;
         break;
       }
       case 'Network.loadingFinished': {
-        const e = this.entries.get(p.requestId); if (!e) break;
+        const e = this.cdpMap.get(p.requestId) || this.entries.get(p.requestId); if (!e) break;
         e.time = (p.timestamp - e.started) * 1000;
         e.encodedSize = p.encodedDataLength || e.encodedSize;
         this.emit('finished', e);
+        this._eagerBody(e);
+        break;
+      }
+      case 'Fetch.requestPaused': {
+        // Response paused at interception point — grab the body now while
+        // it is guaranteed alive, then let the request continue.
+        const rid = p.requestId;
+        // Paused ids are interception job ids, not Network request ids —
+        // match the newest entry for this URL that still lacks a body.
+        let e = this.cdpMap.get(rid) || this.entries.get(rid);
+        if (!e && p.request && p.request.url) {
+          for (let i = this.order.length - 1; i >= 0 && i > this.order.length - 80; i--) {
+            const c = this.entries.get(this.order[i]);
+            if (c && c.url === p.request.url && c.body == null) { e = c; break; }
+          }
+        }
+        if (process.env.HZ_DEBUG) console.error('[cap] paused', p.request && p.request.url ? p.request.url.slice(0, 60) : '?', 'e=', !!e);
+        (async () => {
+          try {
+            const hdrs = p.responseHeaders || [];
+            if (e && p.responseStatusCode && e.status == null) {
+              e.status = p.responseStatusCode;
+              e.responseHeaders = e.responseHeaders || {};
+              for (const h of hdrs) (e.responseHeaders[h.name] = e.responseHeaders[h.name] || []).push(h.value);
+            }
+            const ct = hdrs.find(h => /^content-type$/i.test(h.name));
+            const cl = hdrs.find(h => /^content-length$/i.test(h.name));
+            const mime = ct ? String(ct.value).split(';')[0].trim() : '';
+            const tooBig = cl && parseInt(cl.value, 10) > 2 * 1024 * 1024;
+            const texty = /text|json|javascript|ecmascript|xml|html|css|urlencoded|svg|manifest|mpegurl|wasm/i.test(mime);
+            if (e && texty && !tooBig && (this.bodyBytes || 0) < 64 * 1024 * 1024) {
+              const r = await this.dbg.sendCommand('Fetch.getResponseBody', { requestId: rid });
+              e.body = r.base64Encoded ? Buffer.from(r.body, 'base64') : r.body;
+              if (mime && !e.mimeType) e.mimeType = mime;
+              this.bodyBytes = (this.bodyBytes || 0) + (e.body.length || 0);
+              if (process.env.HZ_DEBUG) console.error('[cap] fetch-body', e.body.length, e.url.slice(0, 60));
+            }
+          } catch (err) { /* body not retrievable — continue anyway */ }
+          try { await this.dbg.sendCommand('Fetch.continueRequest', { requestId: rid }); } catch (err) {}
+        })();
         break;
       }
       case 'Network.loadingFailed': {
-        const e = this.entries.get(p.requestId); if (!e) break;
+        const e = this.cdpMap.get(p.requestId) || this.entries.get(p.requestId); if (!e) break;
         e.failed = true; e.errorText = p.errorText;
         this.emit('failed', e);
         break;
       }
     }
   }
+  // Chromium evicts response bodies quickly — grab text-ish bodies at
+  // loadingFinished while the resource is still alive, capped per-entry
+  // (2MB) and in total (64MB) so capture stays cheap.
+  async _eagerBody(e) {
+    const TEXT = /text|json|javascript|ecmascript|xml|html|css|urlencoded|svg|manifest|mpegurl/i;
+    if (process.env.HZ_DEBUG) console.error('[cap] eager?', e.mimeType, e.encodedSize, e.url && e.url.slice(0, 60));
+    if (!e.mimeType || !TEXT.test(e.mimeType)) return;
+    if ((e.encodedSize || 0) > 2 * 1024 * 1024) return;
+    if ((this.bodyBytes || 0) > 64 * 1024 * 1024) return;
+    const b = await this.body(e.cdpId || e.id);
+    if (b != null) { e.body = b; this.bodyBytes = (this.bodyBytes || 0) + (b.length || 0); }
+  }
   async body(id) {
+    const e = this.entries.get(id) || this.cdpMap.get(id);
+    if (e && e.body != null) return e.body;
+    const reqId = e && e.cdpId ? e.cdpId : id;
     try {
-      const r = await this.dbg.sendCommand('Network.getResponseBody', { requestId: id });
+      const r = await Promise.race([
+        this.dbg.sendCommand('Network.getResponseBody', { requestId: reqId }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('cdp timeout')), 4000))
+      ]);
       return r.base64Encoded ? Buffer.from(r.body, 'base64') : r.body;
-    } catch (e) { return null; }
+    } catch (err) { if (process.env.HZ_DEBUG) console.error('[cap] body', id, err.message); return null; }
   }
   list() { return this.order.map(id => this.entries.get(id)); }
   resources() {
@@ -117,6 +286,15 @@ class CaptureManager {
     if (!c) { c = new TabCapture(wc); this.sessions.set(wc.id, c); wc.once('destroyed', () => this.sessions.delete(wc.id)); }
     return c;
   }
+  // One call per session — routes webRequest events to per-tab captures.
+  attachSession(hub) {
+    for (const phase of ['before', 'sendHeaders', 'headers', 'redirect', 'completed', 'error']) {
+      hub.on(phase, d => {
+        const c = this.sessions.get(d.webContentsId);
+        if (c && c.enabled) c.ingest(phase, d);
+      });
+    }
+  }
   async toggle(wc) {
     const c = this.get(wc);
     c.enabled ? await c.stop() : await c.start();
@@ -127,8 +305,8 @@ class CaptureManager {
 // ---------- resource sniffer (session-level, webRequest) ----------
 class ResourceSniffer {
   constructor() { this.byTab = new Map(); this.listeners = new Set(); }
-  attach(ses) {
-    ses.webRequest.onCompleted({ urls: ['<all_urls>'] }, d => {
+  attach(hub) {
+    hub.on('completed', d => {
       const hit = MEDIA_EXT.test(d.url) || (d.responseHeaders && Object.entries(d.responseHeaders).some(([k, v]) => /content-type/i.test(k) && MEDIA_TYPES.test(String(v))));
       if (!hit) return;
       const rec = { url: d.url, type: this.kindOf(d.url), ts: Date.now(), tabId: d.webContentsId, status: d.statusCode,
@@ -138,9 +316,6 @@ class ResourceSniffer {
       if (arr.length > 500) arr.pop();
       this.byTab.set(d.webContentsId, arr);
       for (const f of this.listeners) { try { f(rec); } catch (e) {} }
-    });
-    ses.webRequest.onBeforeRequest({ urls: ['*://*/*.m3u8*', '*://*/*.mpd*'] }, (d, cb) => {
-      cb({});
     });
   }
   kindOf(url) {

@@ -65,13 +65,13 @@ class AdBlock {
     try {
       if (line.startsWith('||')) {
         const host = line.slice(2).replace(/\^.*$/, '');
-        re = new RegExp('^[a-z]+://([^/]*\\.)?' + host.replace(/\./g, '\\.') + '(\\/|\\?|:|$)', 'i');
+        re = new RegExp('^[a-z]+://([^/]*\\.)?' + host.replace(/[.+?${}()|[\]\\|^]/g, '\\$&').replace(/\*/g, '.*') + '(\\/|\\?|:|$)', 'i');
       } else if (line.startsWith('|')) {
-        re = new RegExp('^' + line.slice(1).replace(/[.+?${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\^$/, '($|\\?|/)'), 'i');
+        re = new RegExp('^' + line.slice(1).replace(/[.+?${}()|[\]\\|]/g, '\\$&').replace(/\*/g, '.*').replace(/\^$/, '($|\\?|/)'), 'i');
       } else if (line.endsWith('|')) {
-        re = new RegExp(line.slice(0, -1).replace(/[.+?${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$', 'i');
+        re = new RegExp(line.slice(0, -1).replace(/[.+?${}()|[\]\\|]/g, '\\$&').replace(/\*/g, '.*') + '$', 'i');
       } else {
-        re = new RegExp(line.replace(/[.+?${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\^/g, '[^\\w\\d\\-_.%]'), 'i');
+        re = new RegExp(line.replace(/[.+?${}()|[\]\\|]/g, '\\$&').replace(/\*/g, '.*').replace(/\^/g, '[^\\w\\d\\-_.%]'), 'i');
       }
     } catch (e) { return; }
     this.rules.push({ re, exception, types, domains });
@@ -92,13 +92,15 @@ class AdBlock {
     if (blocked) this.blockedCount++;
     return blocked;
   }
-  attach(ses) {
-    const handler = (d, cb) => {
+  attach(hub) {
+    hub.on('before', d => {
+      if (!/^https?:/i.test(d.url)) return;
       let host = null;
       try { host = d.referrer ? new URL(d.referrer).hostname : null; } catch (e) {}
-      cb({ cancel: this.test(d.url, d.resourceType, host) });
-    };
-    ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, handler);
+      const hit = this.test(d.url, d.resourceType, host);
+      if (process.env.HZ_DEBUG && hit) console.error('[ab] BLOCK', d.resourceType, d.url.slice(0, 80));
+      return hit ? { cancel: true } : undefined;
+    });
   }
   setEnabled(on) { this.enabled = on; this.store.set('adblock.enabled', on); }
 }

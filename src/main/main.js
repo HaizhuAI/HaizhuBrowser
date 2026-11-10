@@ -8,6 +8,7 @@ const { FingerprintManager } = require('./fingerprint');
 const { UserscriptEngine } = require('./userscripts');
 const { CaptureManager, ResourceSniffer, M3U8Downloader } = require('./capture');
 const { ProxyManager } = require('./proxy');
+const { WebRequestHub } = require('./webhub');
 const { AdBlock } = require('./adblock');
 const { ExtensionManager } = require('./extensions');
 const { AIModule, cookieApi, DUCK_MODELS, OpenAICompat } = require('./ai');
@@ -21,7 +22,7 @@ app.disableHardwareAcceleration();
 const CHROME_H = 82;
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs;
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub;
 let historyStore;
 let panelOpen = false;
 
@@ -35,25 +36,14 @@ function defaultSession() { return session.fromPartition('persist:default'); }
 async function applyNetworkStack() {
   for (const ses of tabs.sessions.size ? tabs.sessions : [defaultSession()]) {
     try { await proxy.apply(ses); } catch (e) { console.error('[proxy]', e.message); }
-    adblock.attach(ses);
-    sniffer.attach(ses);
+    hub.attach(ses);
   }
 }
 
 function attachSessionHooks(ses) {
-  // proxy auth
   ses.setPermissionRequestHandler((wc, perm, cb) => {
     const deny = ['mediaKeySystem', 'geolocation'];
     cb(!deny.includes(perm));
-  });
-  // userscript .user.js install interception
-  ses.webRequest.onBeforeRequest({ urls: ['http://*/*.user.js*', 'https://*/*.user.js*'] }, (d, cb) => {
-    cb({ cancel: false });
-    setImmediate(() => {
-      scripts.installFromUrl(d.url).then(rec => {
-        broadcast('userscript-installed', rec.meta.name);
-      }).catch(e => console.error('[us] install', e.message));
-    });
   });
 }
 
@@ -175,7 +165,7 @@ function registerIpc() {
   });
   ipcMain.handle('cap:clear', (e, tabId) => {
     const t = tabs.tabs.get(tabId || tabs.activeId); if (!t) return;
-    const c = captures.get(t.wc); c.entries.clear(); c.order.length = 0;
+    const c = captures.get(t.wc); c.entries.clear(); c.order.length = 0; c.cdpMap.clear();
     return true;
   });
 
@@ -345,16 +335,27 @@ app.whenReady().then(async () => {
     get win() { return win; },
     fingerprint, scripts, captures, sniffer, adblock, proxy, store,
     history, broadcast,
-    layoutPanel
+    layoutPanel,
+    onSession: s => { if (hub) hub.attach(s); }
   });
   ai = new AIModule(store, null);
 
   const ses = defaultSession();
+  hub = new WebRequestHub();
+  // subscribers are registered ONCE (session-agnostic); hub.attach() arms a session
+  hub.on('before', d => { // userscript .user.js install interception
+    if (!/\.user\.js(\?|$)/i.test(d.url)) return;
+    setImmediate(() => scripts.installFromUrl(d.url)
+      .then(rec => broadcast('userscript-installed', rec.meta.name))
+      .catch(e => console.error('[us] install', e.message)));
+  });
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);
   if (!process.env.HZ_NOHOOKS) {
-    adblock.attach(ses);
-    sniffer.attach(ses);
+    adblock.attach(hub);
+    sniffer.attach(hub);
+    captures.attachSession(hub);
+    hub.attach(ses);
   }
   if (!process.env.HZ_NOLISTS) adblock.ensureLists().catch(e => console.error('[adblock]', e.message));
   extMgr.loadAll(ses).catch(e => console.error('[ext]', e.message));
