@@ -1,6 +1,21 @@
 # Changelog / 更新日志
 
-All notable changes to HaizhuBrowser / 海珠浏览器 are documented here.
+All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
+
+## [1.4.0] — 2025-11-10
+
+### New / 新增
+- **主题系统** — 深色 / 浅色 / 跟随系统（`settings.theme`），经 `nativeTheme` 解析后广播到全部 UI 面；浅色主题使用 Edge 亮色变量
+- **多语言 i18n** — `en` / `zh-CN` / `zh-TW` / `ja` 字典，自动按系统区域匹配或手动选择；覆盖工具栏、菜单、面板导航、新标签页、设置页；切换即时生效
+- **`haizhu://settings` 设置页** — Edge 式双栏：外观（主题三选 + 壁纸开关）、语言、启动主页、搜索引擎（DDG/Google/Bing/Baidu）、隐私（广告拦截开关+统计、清数据）、关于（版本/仓库/许可）
+- **沉浸式新标签页** — 必应每日壁纸全屏（主进程取回，免 CORS）+ 毛玻璃搜索 + 快捷瓷贴 + 壁纸版权信息 + 设置入口；可在设置中关闭壁纸
+- **新品牌图标** — SDF 程序化渲染的极简线条 logo（竖柱+双浪，海洋渐变 squircle），应用图标 + 页面品牌统一
+- 菜单增加 Settings (Ctrl+,) 与 Quit；默认主页改为 `haizhu://newtab`
+
+### Fixed / 修复
+- `haizhu://settings/*` 子路径资源（settings.js/style.css）被协议兜底返回 HTML → `Unexpected token '<'`；协议现按 pathname 路由
+- 必应壁纸页内 fetch 被 CORS 拦截 → 改主进程 `net.fetch` IPC
+- 品牌名修正：海珠 → 海柱
 
 ## [1.3.0] — 2025-11-10
 

@@ -14,6 +14,7 @@ const { AdBlock } = require('./adblock');
 const { ExtensionManager } = require('./extensions');
 const { AIModule, cookieApi, DUCK_MODELS, OpenAICompat } = require('./ai');
 const { TabManager } = require('./tabs');
+const { I18n } = require('./i18n');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -30,12 +31,16 @@ protocol.registerSchemesAsPrivileged([{
 
 let win, chromeView, panelView;
 let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, attachProto = () => {};
-let historyStore;
+let historyStore, i18n;
 let panelOpen = false;
 
 function broadcast(channel, ...args) {
   if (chromeView && !chromeView.webContents.isDestroyed()) chromeView.webContents.send(channel, ...args);
   if (panelView && !panelView.webContents.isDestroyed()) panelView.webContents.send(channel, ...args);
+  // internal pages (ntp / settings tabs) also consume ui-wide events
+  if (tabs) for (const t of tabs.tabs.values()) {
+    try { if (!t.wc.isDestroyed()) t.wc.send(channel, ...args); } catch (e) {}
+  }
 }
 
 function defaultSession() { return session.fromPartition('persist:default'); }
@@ -54,11 +59,22 @@ function attachSessionHooks(ses) {
   });
 }
 
+// theme: 'system'|'dark'|'light' persisted in settings; effective pushed to
+// every webContents (chrome, panel, internal pages) as data-theme.
+function effectiveTheme() { return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'; }
+function applyTheme() {
+  const mode = store.get('theme', 'system');
+  nativeTheme.themeSource = mode;
+  const eff = effectiveTheme();
+  try { if (win) win.setBackgroundColor(eff === 'dark' ? '#1b1c20' : '#e9eaee'); } catch (e) {}
+  broadcast('theme-changed', { mode, effective: eff });
+}
+
 function createWindow() {
   win = new BaseWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 600,
     frame: false,
-    backgroundColor: '#17181c'
+    backgroundColor: '#1b1c20'
   });
   win.setMenuBarVisibility(false);
 
@@ -156,27 +172,41 @@ function registerIpc() {
   // clipped by its own viewport; Menu.popup renders outside all views.
   ipcMain.handle('ui:menu', () => {
     const send = id => chromeView.webContents.send('menu:cmd', id);
+    const t = k => i18n.t(k);
     Menu.buildFromTemplate([
-      { label: 'New tab', accelerator: 'Ctrl+T', click: () => send('newtab') },
-      { label: 'New anonymous tab', accelerator: 'Ctrl+Shift+N', click: () => send('incognito') },
+      { label: t('menu.newtab'), accelerator: 'Ctrl+T', click: () => send('newtab') },
+      { label: t('menu.incognito'), accelerator: 'Ctrl+Shift+N', click: () => send('incognito') },
       { type: 'separator' },
-      { label: 'Dev panel', accelerator: 'F12', click: () => send('panel') },
-      { label: 'Page DevTools', accelerator: 'Ctrl+Shift+I', click: () => send('devtools') },
-      { label: 'Toggle packet capture', click: () => send('capture') },
-      { label: 'View page source', accelerator: 'Ctrl+U', click: () => send('viewsource') },
+      { label: t('menu.devpanel'), accelerator: 'F12', click: () => send('panel') },
+      { label: t('menu.devtools'), accelerator: 'Ctrl+Shift+I', click: () => send('devtools') },
+      { label: t('menu.capture'), click: () => send('capture') },
+      { label: t('menu.viewsource'), accelerator: 'Ctrl+U', click: () => send('viewsource') },
       { type: 'separator' },
-      { label: 'Zoom in', accelerator: 'Ctrl+=', click: () => send('zoomin') },
-      { label: 'Zoom out', accelerator: 'Ctrl+-', click: () => send('zoomout') },
-      { label: 'Actual size', accelerator: 'Ctrl+0', click: () => send('zoomreset') },
-      { label: 'Print…', accelerator: 'Ctrl+P', click: () => send('print') },
+      { label: t('menu.zoomin'), accelerator: 'Ctrl+=', click: () => send('zoomin') },
+      { label: t('menu.zoomout'), accelerator: 'Ctrl+-', click: () => send('zoomout') },
+      { label: t('menu.zoomreset'), accelerator: 'Ctrl+0', click: () => send('zoomreset') },
+      { label: t('menu.print'), accelerator: 'Ctrl+P', click: () => send('print') },
       { type: 'separator' },
-      { label: 'Clear browsing data (this session)', click: () => send('clearcookies') },
-      { label: 'Open downloads folder', click: () => send('opendownloads') }
+      { label: t('menu.cleardata'), click: () => send('clearcookies') },
+      { label: t('menu.downloads'), click: () => send('opendownloads') },
+      { type: 'separator' },
+      { label: t('menu.settings'), accelerator: 'Ctrl+,', click: () => send('settings') },
+      { label: t('menu.quit'), accelerator: 'Alt+F4', click: () => app.quit() }
     ]).popup({ window: win });
     return true;
   });
   ipcMain.on('ntp:go', (e, q) => { if (!e.sender.isDestroyed()) e.sender.loadURL(tabs.normalizeUrl(q)); });
   ipcMain.handle('ntp:history', () => (historyStore.get('items', []) || []).slice(0, 12));
+  // daily wallpaper fetched in main — page-side fetch would be CORS-blocked
+  ipcMain.handle('ntp:wallpaper', async () => {
+    try {
+      const r = await net.fetch('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1');
+      const j = await r.json();
+      const img = j && j.images && j.images[0];
+      if (!img) return null;
+      return { url: 'https://www.bing.com' + img.urlbase + '_1920x1080.jpg', copyright: img.copyright || '' };
+    } catch (e) { return null; }
+  });
 
   // capture
   ipcMain.handle('cap:toggle', async (e, tabId) => {
@@ -300,7 +330,14 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('settings:get', (e, k) => store.get(k));
-  ipcMain.handle('settings:set', (e, k, v) => { store.set(k, v); return true; });
+  ipcMain.handle('settings:set', (e, k, v) => {
+    store.set(k, v);
+    if (k === 'theme') applyTheme();
+    if (k === 'lang') { i18n.reload(); broadcast('i18n-changed', i18n.payload()); }
+    return true;
+  });
+  ipcMain.handle('app:i18n', () => i18n.payload());
+  ipcMain.handle('app:theme', () => ({ mode: store.get('theme', 'system'), effective: effectiveTheme() }));
 
   // gm bridge from preload (userscript privileged ops)
   ipcMain.handle('gm:op', async (e, scriptId, op, args) => {
@@ -354,18 +391,25 @@ app.whenReady().then(async () => {
   // EVERY session (fromPartition('persist:default') is NOT defaultSession)
   const ntpHandler = req => {
     const u = new URL(req.url);
-    if (u.hostname === 'newtab' || u.hostname === 'ntp')
-      return net.fetch(pathToFileURL(path.join(__dirname, '..', 'renderer', 'ntp.html')).toString());
-    return new Response('not found', { status: 404 });
+    const pages = { newtab: 'ntp.html', ntp: 'ntp.html', settings: 'settings.html' };
+    if (!pages[u.hostname]) return new Response('not found', { status: 404 });
+    // root path -> the page; sub-paths -> sibling assets (settings.js, style.css)
+    const file = (u.pathname === '/' || u.pathname === '') ? pages[u.hostname] : u.pathname.slice(1);
+    if (!/^[\w.-]+$/.test(file)) return new Response('not found', { status: 404 });
+    return net.fetch(pathToFileURL(path.join(__dirname, '..', 'renderer', file)).toString());
   };
   attachProto = ses => { try { ses.protocol.handle('haizhu', ntpHandler); } catch (e) {} };
 
   store = new Store('settings', {
-    home: 'https://duckduckgo.com',
+    home: 'haizhu://newtab',
     searchEngine: 'duckduckgo',
+    theme: 'system',
+    lang: 'system',
+    ntpWallpaper: true,
     fingerprint: { enabled: false, mode: 'per-session' },
     adblock: { enabled: true }
   });
+  i18n = new I18n(store);
   historyStore = new Store('history', { items: [] });
   fingerprint = new FingerprintManager(store);
   scripts = new UserscriptEngine(store);
@@ -423,10 +467,13 @@ app.whenReady().then(async () => {
     app.on('web-contents-created', (e, wc) => {
       wc.on('did-start-loading', () => console.log('[wc', wc.id, '] start-loading'));
       wc.on('did-start-navigation', (e2, u) => console.log('[wc', wc.id, '] nav', u));
+      wc.on('console-message', (e2, lvl, msg) => { if (lvl >= 2) console.log('[con', wc.id, lvl, ']', msg.slice(0, 300)); });
     });
   }
   registerIpc();
   createWindow();
+  nativeTheme.on('updated', applyTheme);
+  applyTheme();
 
   // dev: HZ_EVAL=file executes a test script inside chromeView (has hz.* api)
   if (process.env.HZ_EVAL) {

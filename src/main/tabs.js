@@ -110,9 +110,15 @@ class TabManager {
   normalizeUrl(input) {
     const s = String(input || '').trim();
     if (!s || s === 'about:blank' || s === 'newtab' || s === 'ntp') return this.NTP_URL;
+    if (s === 'settings') return 'haizhu://settings';
     if (/^[a-z]+:/i.test(s)) return s;
     if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s) || s === 'localhost' || /^localhost[:/]/.test(s)) return 'https://' + s;
-    return 'https://duckduckgo.com/?q=' + encodeURIComponent(s);
+    const ENGINES = {
+      duckduckgo: 'https://duckduckgo.com/?q=', google: 'https://www.google.com/search?q=',
+      bing: 'https://www.bing.com/search?q=', baidu: 'https://www.baidu.com/s?wd='
+    };
+    const eng = (this.ctx.store && this.ctx.store.get('searchEngine')) || 'duckduckgo';
+    return (ENGINES[eng] || ENGINES.duckduckgo) + encodeURIComponent(s);
   }
   openTab(url, active = true, opts = {}) {
     const tab = new Tab(this, url, opts);

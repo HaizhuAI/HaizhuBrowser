@@ -3,6 +3,13 @@
 const $ = s => document.querySelector(s);
 const tabstrip = $('#tabstrip'), omni = $('#omni');
 let tabs = [], activeId = null;
+let STR = {};
+const tr = k => STR[k] || k;
+function applyI18n() {
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+}
+function applyTheme(th) { document.documentElement.dataset.theme = th.effective || th; }
 
 function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -23,9 +30,9 @@ function render() {
   tabstrip.innerHTML = tabs.map(t => `
     <div class="tab ${t.id === activeId ? 'active' : ''}" data-id="${t.id}" title="${esc(t.url)}">
       <span class="fav">${faviconHtml(t)}</span>
-      ${t.incognito ? '<span class="inc">INCOG</span>' : ''}
-      <span class="t">${esc(t.title || t.url || 'New Tab')}</span>
-      ${t.capture ? '<span class="cap-ind" title="Capturing"></span>' : ''}
+      ${t.incognito ? `<span class="inc">${esc(tr('tab.incognito'))}</span>` : ''}
+      <span class="t">${esc(t.title || t.url || tr('tab.newtab'))}</span>
+      ${t.capture ? `<span class="cap-ind" title="${esc(tr('tab.capturing'))}"></span>` : ''}
       <span class="x" data-x="${t.id}">${X_SVG}</span>
     </div>`).join('');
 
@@ -37,9 +44,9 @@ function render() {
     $('#bBack').disabled = !active.canBack;
     $('#bFwd').disabled = !active.canFwd;
     const u = active.url || '';
-    if (/^https:/i.test(u)) { sec.innerHTML = LOCK_SVG; sec.className = ''; sec.title = 'Connection is secure'; }
-    else if (/^http:/i.test(u)) { sec.innerHTML = WARN_SVG; sec.className = 'warn-c'; sec.title = 'Not secure (HTTP)'; }
-    else { sec.innerHTML = INFO_SVG; sec.className = ''; sec.title = u.startsWith('file:') ? 'Local file' : 'Internal page'; }
+    if (/^https:/i.test(u)) { sec.innerHTML = LOCK_SVG; sec.className = ''; sec.title = tr('omni.secure'); }
+    else if (/^http:/i.test(u)) { sec.innerHTML = WARN_SVG; sec.className = 'warn-c'; sec.title = tr('omni.insecure'); }
+    else { sec.innerHTML = INFO_SVG; sec.className = ''; sec.title = u.startsWith('file:') ? tr('omni.local') : tr('omni.internal'); }
   }
 }
 window.__pageSvg = () => PAGE_SVG;
@@ -103,6 +110,7 @@ if (hz.ui.onMenuCmd) hz.ui.onMenuCmd(id => {
     case 'print': hz.page.print(); break;
     case 'clearcookies': hz.ck.clear(); break;
     case 'opendownloads': hz.app.opendownloads(); break;
+    case 'settings': hz.tabs.open('settings'); break;
   }
 });
 
@@ -132,5 +140,11 @@ if (hz.panel.onState) hz.panel.onState(open => $('#bPanel').classList.toggle('ac
 $('#wMin').onclick = () => hz.app.winctrl('min');
 $('#wMax').onclick = () => hz.app.winctrl('max');
 $('#wClose').onclick = () => hz.app.winctrl('close');
+
+// i18n + theme bootstrap and live updates
+hz.app.i18n().then(p => { STR = p.strings; applyI18n(); render(); });
+hz.app.onI18n(p => { STR = p.strings; applyI18n(); render(); });
+hz.app.theme().then(applyTheme);
+hz.app.onTheme(applyTheme);
 
 refresh();

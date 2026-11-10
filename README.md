@@ -19,6 +19,10 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **AI assistant** | **Duck.ai built-in** (GPT-4o-mini / Llama / Claude / Mixtral / o3-mini) + import any **OpenAI-compatible endpoint** (base URL + key + model) | Same protocol layer |
 | **AI Agent** | Tool loop: `navigate`, `list/set/delete cookies`, `network_log`, `request_body`, `resources`, `run_js`, `dom_query`, `click`, `fill`, `screenshot`, `page_text/html`, `storage_get`, `history` — analyzes captures and automates pages from chat | Same tool subset |
 | **DevTools** | Native Chromium DevTools (F12 / right-dock) + custom panel | — |
+| **Themes** | Dark / light / follow-system across all UI surfaces | System dark mode |
+| **i18n** | English / 简体中文 / 繁體中文 / 日本語 — toolbar, menu, panel, NTP, settings | System strings |
+| **New tab** | Edge-style immersive NTP: Bing daily wallpaper, frosted search, quick-link tiles | Simple NTP |
+| **Settings** | `haizhu://settings` — appearance, language, startup, search engine, privacy, about | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
 ## Reverse-engineering pedigree

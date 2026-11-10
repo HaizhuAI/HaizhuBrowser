@@ -1,4 +1,4 @@
-# Haizhu Browser 海珠浏览器
+# Haizhu Browser 海柱浏览器
 
 面向开发者与极客的**高性能一体化浏览器**——抓包调试、代理、指纹伪装、浏览器扩展、油猴脚本、资源嗅探抓取、内置 AI 助手与 Agent 自动化——覆盖 **Windows、Linux、Android** 三端。
 
@@ -19,6 +19,10 @@
 | **AI 助手** | **内置 Duck.ai**（GPT-4o-mini / Llama / Claude / Mixtral / o3-mini）+ 可导入任意 **OpenAI 兼容端点**（base URL + key + model） | 同一协议层 |
 | **AI Agent** | 工具循环：`navigate`、`list/set/delete cookies`、`network_log`、`request_body`、`resources`、`run_js`、`dom_query`、`click`、`fill`、`screenshot`、`page_text/html`、`storage_get`、`history`——可在对话里分析抓包数据、操作页面自动化 | 同套工具子集 |
 | **DevTools** | 原生 Chromium DevTools（F12/右侧停靠）+ 自研面板 | — |
+| **主题** | 深色 / 浅色 / 跟随系统，全 UI 面生效 | 跟随系统深色 |
+| **多语言** | English / 简体中文 / 繁體中文 / 日本語——工具栏、菜单、面板、新标签页、设置页全覆盖 | 系统字符串 |
+| **新标签页** | Edge 式沉浸 NTP：必应每日壁纸、毛玻璃搜索、快捷瓷贴 | 简易 NTP |
+| **设置页** | `haizhu://settings`——外观、语言、启动、搜索引擎、隐私、关于 | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
 
 ## 逆向渊源

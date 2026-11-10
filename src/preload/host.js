@@ -105,7 +105,11 @@ contextBridge.exposeInMainWorld('hz', {
   app: {
     version: () => invoke('app:version'),
     winctl: op => invoke('win:ctl', op),
-    opendownloads: () => invoke('app:opendownloads')
+    opendownloads: () => invoke('app:opendownloads'),
+    i18n: () => invoke('app:i18n'),
+    theme: () => invoke('app:theme'),
+    onTheme: fn => on('theme-changed', fn),
+    onI18n: fn => on('i18n-changed', fn)
   },
   settings: {
     get: k => invoke('settings:get', k),

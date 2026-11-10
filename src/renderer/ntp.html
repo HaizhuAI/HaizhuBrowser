@@ -2,100 +2,184 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' data: https:; script-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' data: https:; script-src 'unsafe-inline'; connect-src 'self' https://www.bing.com https://*.bing.com">
 <title>New Tab</title>
 <style>
   :root {
-    --bg: #17181c; --surface: #232429; --surface2: #2c2d33;
-    --border: #3a3b42; --fg: #e8eaed; --fg2: #9aa0a6; --acc: #7ab8ff;
+    --glass: #ffffff14; --glass-hov: #ffffff1f; --glass-brd: #ffffff26;
+    --ink: #ffffff; --ink2: #ffffffb8;
+    --acc: #7ab8ff;
+    --ui-font: 'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+    --mono: 'Cascadia Code','JetBrains Mono',Consolas,monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    background: radial-gradient(1200px 600px at 50% -10%, #24262e 0%, var(--bg) 55%);
-    color: var(--fg); font: 14px/1.5 'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
-    display: flex; flex-direction: column; align-items: center;
-    overflow-y: auto; user-select: none;
+    color: var(--ink); font: 14px/1.5 var(--ui-font);
+    overflow: hidden; user-select: none;
+    background: #0d1420;
   }
-  .wrap { width: min(680px, 92%); margin: auto; display: flex; flex-direction: column; align-items: center; padding: 48px 0; }
-  .logo {
-    width: 64px; height: 64px; border-radius: 18px; margin-bottom: 18px;
-    background: linear-gradient(135deg, #7ab8ff 0%, #a78bfa 55%, #f472b6 110%);
-    display: grid; place-items: center;
-    box-shadow: 0 8px 32px #7ab8ff33, inset 0 1px 0 #ffffff2e;
+  /* ---- immersive wallpaper ---- */
+  #bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(1400px 700px at 75% -10%, #2b4a6e33 0%, transparent 55%),
+      radial-gradient(1000px 600px at 10% 110%, #3a2b5e44 0%, transparent 55%),
+      linear-gradient(160deg, #0d1420 0%, #132033 50%, #0d1420 100%);
+    background-size: cover; background-position: center;
+    transform: scale(1.02);
+    transition: opacity .8s ease;
   }
-  .logo svg { width: 38px; height: 38px; }
-  h1 { font-size: 20px; font-weight: 600; letter-spacing: .5px; margin-bottom: 4px; }
-  .sub { color: var(--fg2); font-size: 12.5px; margin-bottom: 34px; }
+  #bg.img { opacity: 0; }
+  #bg.img.on { opacity: 1; }
+  #scrim {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(#00000042 0%, #00000014 38%, #0000005c 100%);
+  }
+  [data-theme="light"] #scrim { background: linear-gradient(#ffffff30 0%, #ffffff0a 45%, #00000040 100%); }
+  main, header, footer { position: relative; z-index: 2; }
+
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; padding: 18px 26px; gap: 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-shadow: 0 1px 6px #00000070; }
+  .brand .lg { width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(140deg, #0f6acd 0%, #123a6b 100%);
+    display: grid; place-items: center; box-shadow: 0 2px 10px #00000055, inset 0 1px 0 #ffffff30; }
+  .brand .lg svg { width: 19px; height: 19px; }
+  .brand .nm { font-size: 13px; font-weight: 600; letter-spacing: .4px; color: var(--ink); opacity: .92; }
+
+  main {
+    height: 100%; display: flex; flex-direction: column; align-items: center;
+    padding-top: min(26vh, 240px);
+  }
   .search {
-    width: 100%; display: flex; align-items: center; height: 52px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
-    padding: 0 8px 0 20px;
-    box-shadow: 0 2px 8px #00000030, inset 0 1px 0 #ffffff08;
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    width: min(640px, 88vw); display: flex; align-items: center; height: 54px;
+    background: var(--glass); border: 1px solid var(--glass-brd); border-radius: 999px;
+    padding: 0 8px 0 22px;
+    backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow: 0 6px 24px #0000004d, inset 0 1px 0 #ffffff24;
+    transition: background .15s, border-color .15s, box-shadow .15s;
   }
-  .search:focus-within {
-    background: var(--surface2); border-color: var(--acc);
-    box-shadow: 0 0 0 3px #7ab8ff2e, 0 4px 16px #00000040;
-  }
-  .search svg { flex: none; color: var(--fg2); margin-right: 12px; }
+  .search:focus-within { background: var(--glass-hov); border-color: #ffffff55;
+    box-shadow: 0 0 0 3px #7ab8ff30, 0 8px 28px #00000055; }
+  .search svg { flex: none; color: var(--ink2); margin-right: 12px; }
   .search input {
     flex: 1; background: none; border: none; outline: none;
-    color: var(--fg); font: 15px/1.4 inherit;
+    color: var(--ink); font: 15.5px/1.4 var(--ui-font);
+    text-shadow: 0 1px 3px #00000040;
   }
-  .search input::placeholder { color: var(--fg2); }
+  .search input::placeholder { color: var(--ink2); }
   .search .go {
     flex: none; width: 38px; height: 38px; border-radius: 50%; border: none;
-    background: var(--acc); color: #10131a; display: grid; place-items: center;
+    background: var(--acc); color: #0b1524; display: grid; place-items: center;
     cursor: pointer; transition: transform .12s, filter .12s;
   }
-  .search .go:hover { filter: brightness(1.1); }
+  .search .go:hover { filter: brightness(1.12); }
   .search .go:active { transform: scale(.94); }
-  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; width: 100%; margin-top: 42px; }
+
+  .links { display: flex; gap: 10px; margin-top: 38px; max-width: 92vw; flex-wrap: wrap; justify-content: center; }
   .tile {
-    display: flex; flex-direction: column; align-items: center; gap: 9px;
-    padding: 14px 6px; border-radius: 14px; cursor: pointer;
-    transition: background .13s, transform .13s;
+    width: 96px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 13px 4px 11px; border-radius: 12px; cursor: pointer;
+    background: var(--glass); border: 1px solid #ffffff14;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    transition: background .13s, transform .13s, border-color .13s;
   }
-  .tile:hover { background: var(--surface); transform: translateY(-1px); }
-  .tile:active { transform: scale(.97); }
+  .tile:hover { background: var(--glass-hov); border-color: var(--glass-brd); transform: translateY(-2px); }
+  .tile:active { transform: scale(.96); }
   .tile .ic {
-    width: 46px; height: 46px; border-radius: 13px;
-    background: var(--surface2); border: 1px solid var(--border);
-    display: grid; place-items: center; overflow: hidden;
-    font: 600 17px/1 'Segoe UI Variable Text','Segoe UI',sans-serif; color: var(--acc);
+    width: 38px; height: 38px; border-radius: 10px;
+    background: #ffffff20; display: grid; place-items: center; overflow: hidden;
+    font: 600 15px/1 var(--ui-font); color: #fff;
   }
-  .tile .ic img { width: 24px; height: 24px; border-radius: 5px; }
-  .tile .nm { font-size: 11.5px; color: var(--fg2); max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .tile:hover .nm { color: var(--fg); }
-  .foot { margin-top: 48px; color: #5b5f66; font-size: 11.5px; letter-spacing: .4px; }
-  kbd { font: 11px var(--mono,Consolas,monospace); background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .tile .ic img { width: 22px; height: 22px; border-radius: 5px; }
+  .tile .nm { font-size: 11px; color: var(--ink2); max-width: 100%; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 1px 3px #00000060; }
+  .tile:hover .nm { color: var(--ink); }
+
+  footer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; padding: 14px 20px; gap: 12px;
+  }
+  .fbtn {
+    width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ffffff14;
+    background: var(--glass); color: var(--ink2); cursor: pointer;
+    display: grid; place-items: center;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    transition: background .13s, color .13s;
+  }
+  .fbtn:hover { background: var(--glass-hov); color: var(--ink); }
+  #credit { margin-left: auto; font-size: 11px; color: #ffffff90;
+    text-shadow: 0 1px 4px #000000a0; letter-spacing: .2px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo">
-    <svg viewBox="0 0 48 48" fill="none"><path d="M10 30c6-1 8-10 14-10s8 9 14 8" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><path d="M10 22c6-1 8-10 14-10s8 9 14 8" stroke="#ffffffcc" stroke-width="3.4" stroke-linecap="round"/><circle cx="24" cy="38" r="2.4" fill="#fff"/></svg>
+<div id="bg"></div>
+<div id="scrim"></div>
+<header>
+  <div class="brand">
+    <span class="lg"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="2.9" stroke-linecap="round"><path d="M24 11v26"/><path d="M12.5 21c3.9-4.6 7.8-4.6 11.5 0s7.6 4.6 11.5 0"/><path d="M12.5 30c3.9-4.6 7.8-4.6 11.5 0s7.6 4.6 11.5 0"/></svg></span>
+    <span class="nm" id="brand">海柱浏览器</span>
   </div>
-  <h1>海珠浏览器</h1>
-  <div class="sub">Haizhu Browser — dev-grade, privacy-first</div>
+</header>
+<main>
   <div class="search">
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>
-    <input id="q" placeholder="搜索或输入网址 / Search or enter address" autocomplete="off" spellcheck="false" autofocus>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>
+    <input id="q" placeholder="Search or enter address" autocomplete="off" spellcheck="false" autofocus>
     <button class="go" id="go" title="Go">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
     </button>
   </div>
-  <div class="tiles" id="tiles"></div>
-  <div class="foot"><kbd>Ctrl</kbd>+<kbd>L</kbd> 聚焦地址栏 &nbsp;·&nbsp; <kbd>F12</kbd> 开发者面板 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 匿名标签</div>
-</div>
+  <div class="links" id="links"></div>
+</main>
+<footer>
+  <button class="fbtn" id="btnSet" title="Settings">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.12-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.12 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.12 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+  </button>
+  <span id="credit"></span>
+</footer>
 <script>
+const tr = k => (window.STR || {})[k] || k;
 const q = document.getElementById('q');
 const go = () => { const v = q.value.trim(); if (v) hzNav.go(v); };
 q.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
 document.getElementById('go').onclick = go;
+document.getElementById('btnSet').onclick = () => hzNav.go('haizhu://settings');
 q.focus();
 
+function applyI18n() {
+  q.placeholder = tr('ntp.search');
+  document.getElementById('btnSet').title = tr('ntp.settings');
+  const b = document.getElementById('brand');
+  if (window.LANG && window.LANG !== 'en') b.textContent = tr('app.name');
+}
+hzNav.i18n().then(p => { window.STR = p.strings; window.LANG = p.lang; applyI18n(); });
+hzNav.onI18n(p => { window.STR = p.strings; window.LANG = p.lang; applyI18n(); });
+hzNav.theme().then(th => document.documentElement.dataset.theme = th.effective);
+hzNav.onTheme(th => document.documentElement.dataset.theme = th.effective);
+
+// ---- immersive daily wallpaper (fetched in main — CORS-safe) ----
+(async () => {
+  try {
+    if (await hzNav.settings.get('ntpWallpaper') === false) return;
+    const img = await hzNav.wallpaper();
+    if (!img || !img.url) return;
+    const pre = new Image();
+    pre.onload = () => {
+      const bg = document.getElementById('bg');
+      bg.classList.add('img');
+      bg.style.background = `url("${img.url}") center/cover no-repeat`;
+      requestAnimationFrame(() => bg.classList.add('on'));
+      document.getElementById('credit').textContent =
+        tr('ntp.photoBy') + ' © ' + (img.copyright || 'Bing');
+    };
+    pre.src = img.url;
+  } catch (e) { /* offline — keep gradient */ }
+})();
+
+// ---- quick links: history-derived + defaults ----
 const QUICK = [
   ['DuckDuckGo', 'https://duckduckgo.com'],
   ['GitHub', 'https://github.com'],
@@ -104,7 +188,7 @@ const QUICK = [
   ['npm', 'https://www.npmjs.com'],
   ['DevDocs', 'https://devdocs.io']
 ];
-const tilesEl = document.getElementById('tiles');
+const linksEl = document.getElementById('links');
 function tile(name, url, fav) {
   const host = new URL(url).hostname.replace(/^www\./, '');
   const a = document.createElement('a');
@@ -117,19 +201,17 @@ function tile(name, url, fav) {
 (async () => {
   let items = [];
   try { items = await hzNav.history() || []; } catch (e) {}
-  const seen = new Set();
-  const merged = [];
+  const seen = new Set(), merged = [];
   for (const h of items) {
     if (!h.url || !/^https?:/.test(h.url)) continue;
-    const host = new URL(h.url).hostname;
+    let host; try { host = new URL(h.url).hostname; } catch (e) { continue; }
     if (seen.has(host)) continue; seen.add(host);
-    const nm = (h.title && h.title !== 'New Tab' && h.title !== 'New Tab\x00') ? h.title : host;
+    const nm = (h.title && !/^new tab|新标签页|新分頁|新しいタブ$/i.test(h.title)) ? h.title : host;
     merged.push({ name: nm, url: h.url, fav: h.fav || ('https://icons.duckduckgo.com/ip3/' + host + '.ico') });
-    if (merged.length >= 6) break;
+    if (merged.length >= 8) break;
   }
-  for (const [n, u] of QUICK) { if (merged.length >= 12) break; if (!seen.has(new URL(u).hostname)) merged.push({ name: n, url: u }); }
-  merged.slice(0, 12).forEach(m => tilesEl.appendChild(tile(m.name, m.url, m.fav)));
-  if (!merged.length) document.getElementById('tiles').style.display = 'none';
+  for (const [n, u] of QUICK) { if (merged.length >= 10) break; if (!seen.has(new URL(u).hostname)) { seen.add(new URL(u).hostname); merged.push({ name: n, url: u }); } }
+  merged.slice(0, 10).forEach(m => linksEl.appendChild(tile(m.name, m.url, m.fav)));
 })();
 </script>
 </body>

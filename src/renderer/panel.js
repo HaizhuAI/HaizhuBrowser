@@ -6,6 +6,18 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const activeTab = async () => (await hz.tabs.list()).find(t => t.id === hzActiveId) || (await hz.tabs.state());
 let hzActiveId = null;
 
+// i18n + theme
+let STR = {};
+const tr = k => STR[k] || k;
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+}
+hz.app.i18n().then(p => { STR = p.strings; applyI18n(); });
+hz.app.onI18n(p => { STR = p.strings; applyI18n(); });
+hz.app.theme().then(th => document.documentElement.dataset.theme = th.effective);
+hz.app.onTheme(th => document.documentElement.dataset.theme = th.effective);
+
 // ---------- page switching ----------
 $('#pClose').onclick = () => hz.panel.toggle();
 document.querySelectorAll('#ptabs .pt').forEach(el => {
