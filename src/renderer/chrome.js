@@ -18,13 +18,24 @@ const LOCK_SVG = '<svg viewBox="0 0 24 24" width="13" height="13"><rect x="5" y=
 const WARN_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.2h.01"/></svg>';
 const INFO_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></svg>';
 const PAGE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const GLOBE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></svg>';
 const isNtp = u => !u || u === 'about:blank' || /^haizhu:\/\//.test(u);
+// only real fetchable favicon URLs; everything else falls back to a glyph
+const okFav = u => /^https?:\/\//.test(u || '') || /^data:image\//.test(u || '');
 
 function faviconHtml(t) {
   if (t.loading) return '<span class="spin"></span>';
-  if (t.fav) return `<img src="${esc(t.fav)}" onerror="this.outerHTML=window.__pageSvg()">`;
+  if (okFav(t.fav)) return `<img class="favicon" src="${esc(t.fav)}">`;
   return PAGE_SVG;
 }
+// error events don't bubble — document-level capture handler replaces any
+// broken favicon/bookmark img with the matching inline glyph
+document.addEventListener('error', e => {
+  const img = e.target;
+  if (img.tagName !== 'IMG') return;
+  if (img.closest('.fav')) img.outerHTML = PAGE_SVG;
+  else if (img.closest('.bm-btn')) img.outerHTML = `<span class="bm-ic">${GLOBE_SVG}</span>`;
+}, true);
 
 function render() {
   tabstrip.innerHTML = tabs.map(t => `
@@ -184,9 +195,9 @@ const BM_ICONS = {
   relay: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12l-3-3M20 15H8l3 3"/></svg>',
   chat: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="13" cy="10.5" r="1" fill="currentColor"/><circle cx="17" cy="10.5" r="1" fill="currentColor"/></svg>',
   compass: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" stroke-linejoin="round"/></svg>',
-  globe: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4 5.6 4 9s-1.2 6.4-4 9c-2.8-2.6-4-5.6-4-9s1.2-6.4 4-9z"/></svg>'
+  globe: GLOBE_SVG
 };
-const bmIcon = b => b.fav ? `<img src="${esc(b.fav)}">` : `<span class="bm-ic">${BM_ICONS[b.icon] || BM_ICONS.globe}</span>`;
+const bmIcon = b => okFav(b.fav) ? `<img src="${esc(b.fav)}">` : `<span class="bm-ic">${BM_ICONS[b.icon] || BM_ICONS.globe}</span>`;
 
 function renderBm() {
   bmrow.innerHTML = bms.map(b => `

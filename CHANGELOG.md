@@ -2,6 +2,12 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.5.4] — 2025-11-10
+
+### Fixed / 修复
+- **标签 favicon 破图（同类问题全局修复）** — favicon URL 白名单（仅 `https?`/`data:image`，`chrome://` 等一律回退文档图标）；`document` 捕获阶段统一监听 `error`，标签 `.fav` 破图→文档 SVG、书签破图→地球 SVG，废除不可靠的内联 onerror
+- 实测：design.haizhuai.art 加载完成后 favicon 正常渲染，`brokenImgs:0`
+
 ## [1.5.3] — 2025-11-10
 
 ### Fixed / 修复

@@ -1,6 +1,6 @@
 {
   "name": "haizhu-browser",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Haizhu Browser — a developer & geek oriented high-performance all-in-one browser (debug sniffer, proxy, fingerprint spoofing, extensions, userscripts, resource grabber, AI agent).",
   "main": "src/main/main.js",
   "author": {
