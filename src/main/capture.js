@@ -226,6 +226,7 @@ class TabCapture {
         break;
       }
       case 'Network.loadingFailed': {
+        if (process.env.HZ_DEBUG) console.error('[cap-fail]', p.errorText, (p.request && p.request.url || '').slice(0, 60));
         const e = this.cdpMap.get(p.requestId) || this.entries.get(p.requestId); if (!e) break;
         e.failed = true; e.errorText = p.errorText;
         this.emit('failed', e);

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' data: https:; script-src 'unsafe-inline'">
+<title>New Tab</title>
+<style>
+  :root {
+    --bg: #17181c; --surface: #232429; --surface2: #2c2d33;
+    --border: #3a3b42; --fg: #e8eaed; --fg2: #9aa0a6; --acc: #7ab8ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #24262e 0%, var(--bg) 55%);
+    color: var(--fg); font: 14px/1.5 'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-y: auto; user-select: none;
+  }
+  .wrap { width: min(680px, 92%); margin: auto; display: flex; flex-direction: column; align-items: center; padding: 48px 0; }
+  .logo {
+    width: 64px; height: 64px; border-radius: 18px; margin-bottom: 18px;
+    background: linear-gradient(135deg, #7ab8ff 0%, #a78bfa 55%, #f472b6 110%);
+    display: grid; place-items: center;
+    box-shadow: 0 8px 32px #7ab8ff33, inset 0 1px 0 #ffffff2e;
+  }
+  .logo svg { width: 38px; height: 38px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: .5px; margin-bottom: 4px; }
+  .sub { color: var(--fg2); font-size: 12.5px; margin-bottom: 34px; }
+  .search {
+    width: 100%; display: flex; align-items: center; height: 52px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 0 8px 0 20px;
+    box-shadow: 0 2px 8px #00000030, inset 0 1px 0 #ffffff08;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .search:focus-within {
+    background: var(--surface2); border-color: var(--acc);
+    box-shadow: 0 0 0 3px #7ab8ff2e, 0 4px 16px #00000040;
+  }
+  .search svg { flex: none; color: var(--fg2); margin-right: 12px; }
+  .search input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--fg); font: 15px/1.4 inherit;
+  }
+  .search input::placeholder { color: var(--fg2); }
+  .search .go {
+    flex: none; width: 38px; height: 38px; border-radius: 50%; border: none;
+    background: var(--acc); color: #10131a; display: grid; place-items: center;
+    cursor: pointer; transition: transform .12s, filter .12s;
+  }
+  .search .go:hover { filter: brightness(1.1); }
+  .search .go:active { transform: scale(.94); }
+  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; width: 100%; margin-top: 42px; }
+  .tile {
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    padding: 14px 6px; border-radius: 14px; cursor: pointer;
+    transition: background .13s, transform .13s;
+  }
+  .tile:hover { background: var(--surface); transform: translateY(-1px); }
+  .tile:active { transform: scale(.97); }
+  .tile .ic {
+    width: 46px; height: 46px; border-radius: 13px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: grid; place-items: center; overflow: hidden;
+    font: 600 17px/1 'Segoe UI Variable Text','Segoe UI',sans-serif; color: var(--acc);
+  }
+  .tile .ic img { width: 24px; height: 24px; border-radius: 5px; }
+  .tile .nm { font-size: 11.5px; color: var(--fg2); max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .tile:hover .nm { color: var(--fg); }
+  .foot { margin-top: 48px; color: #5b5f66; font-size: 11.5px; letter-spacing: .4px; }
+  kbd { font: 11px var(--mono,Consolas,monospace); background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <svg viewBox="0 0 48 48" fill="none"><path d="M10 30c6-1 8-10 14-10s8 9 14 8" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><path d="M10 22c6-1 8-10 14-10s8 9 14 8" stroke="#ffffffcc" stroke-width="3.4" stroke-linecap="round"/><circle cx="24" cy="38" r="2.4" fill="#fff"/></svg>
+  </div>
+  <h1>海珠浏览器</h1>
+  <div class="sub">Haizhu Browser — dev-grade, privacy-first</div>
+  <div class="search">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>
+    <input id="q" placeholder="搜索或输入网址 / Search or enter address" autocomplete="off" spellcheck="false" autofocus>
+    <button class="go" id="go" title="Go">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <div class="foot"><kbd>Ctrl</kbd>+<kbd>L</kbd> 聚焦地址栏 &nbsp;·&nbsp; <kbd>F12</kbd> 开发者面板 &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> 匿名标签</div>
+</div>
+<script>
+const q = document.getElementById('q');
+const go = () => { const v = q.value.trim(); if (v) hzNav.go(v); };
+q.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+document.getElementById('go').onclick = go;
+q.focus();
+
+const QUICK = [
+  ['DuckDuckGo', 'https://duckduckgo.com'],
+  ['GitHub', 'https://github.com'],
+  ['MDN', 'https://developer.mozilla.org'],
+  ['Stack Overflow', 'https://stackoverflow.com'],
+  ['npm', 'https://www.npmjs.com'],
+  ['DevDocs', 'https://devdocs.io']
+];
+const tilesEl = document.getElementById('tiles');
+function tile(name, url, fav) {
+  const host = new URL(url).hostname.replace(/^www\./, '');
+  const a = document.createElement('a');
+  a.className = 'tile';
+  a.innerHTML = `<div class="ic">${fav ? `<img src="${fav}" onerror="this.replaceWith(document.createTextNode('${host[0].toUpperCase()}'))">` : host[0].toUpperCase()}</div><div class="nm"></div>`;
+  a.querySelector('.nm').textContent = name;
+  a.onclick = () => hzNav.go(url);
+  return a;
+}
+(async () => {
+  let items = [];
+  try { items = await hzNav.history() || []; } catch (e) {}
+  const seen = new Set();
+  const merged = [];
+  for (const h of items) {
+    if (!h.url || !/^https?:/.test(h.url)) continue;
+    const host = new URL(h.url).hostname;
+    if (seen.has(host)) continue; seen.add(host);
+    const nm = (h.title && h.title !== 'New Tab' && h.title !== 'New Tab\x00') ? h.title : host;
+    merged.push({ name: nm, url: h.url, fav: h.fav || ('https://icons.duckduckgo.com/ip3/' + host + '.ico') });
+    if (merged.length >= 6) break;
+  }
+  for (const [n, u] of QUICK) { if (merged.length >= 12) break; if (!seen.has(new URL(u).hostname)) merged.push({ name: n, url: u }); }
+  merged.slice(0, 12).forEach(m => tilesEl.appendChild(tile(m.name, m.url, m.fav)));
+  if (!merged.length) document.getElementById('tiles').style.display = 'none';
+})();
+</script>
+</body>
+</html>

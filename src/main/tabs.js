@@ -14,6 +14,8 @@ class Tab {
     this.id = nextId++;
     this.partition = opts.partition || 'persist:default';
     this.ses = session.fromPartition(this.partition);
+    this.pendingUrl = (url && url !== 'about:blank') ? manager.normalizeUrl(url) : manager.NTP_URL;
+    const isNtp = /^haizhu:/.test(this.pendingUrl);
     const prefs = {
       contextIsolation: true,
       sandbox: false,
@@ -21,8 +23,8 @@ class Tab {
       session: this.ses
     };
     if (!process.env.HZ_NOPRELOAD) {
-      prefs.preload = path.join(__dirname, '..', 'preload', 'page.js');
-      prefs.additionalArguments = ['--hz-bootstrap-file=' + this.writeBootstrap()];
+      prefs.preload = path.join(__dirname, '..', 'preload', isNtp ? 'ntp.js' : 'page.js');
+      if (!isNtp) prefs.additionalArguments = ['--hz-bootstrap-file=' + this.writeBootstrap()];
     }
     this.view = new WebContentsView({ webPreferences: prefs });
     this.wc = this.view.webContents;
@@ -31,7 +33,6 @@ class Tab {
     this.loading = false;
     this.incognito = !!opts.incognito;
     this.favIconUrl = null;
-    this.pendingUrl = (url && url !== 'about:blank') ? manager.normalizeUrl(url) : null;
     this.wire();
   }
   wire() {
@@ -105,9 +106,10 @@ class TabManager {
   get captures() { return this.ctx.captures; }
   get win() { return this.ctx.win; }
   broadcast(...a) { this.ctx.broadcast(...a); }
+  get NTP_URL() { return 'haizhu://newtab'; }
   normalizeUrl(input) {
     const s = String(input || '').trim();
-    if (!s) return 'about:blank';
+    if (!s || s === 'about:blank' || s === 'newtab' || s === 'ntp') return this.NTP_URL;
     if (/^[a-z]+:/i.test(s)) return s;
     if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s) || s === 'localhost' || /^localhost[:/]/.test(s)) return 'https://' + s;
     return 'https://duckduckgo.com/?q=' + encodeURIComponent(s);

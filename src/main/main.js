@@ -1,5 +1,6 @@
 'use strict';
-const { app, BaseWindow, WebContentsView, session, ipcMain, dialog, shell, clipboard, Menu, nativeTheme } = require('electron');
+const { app, BaseWindow, WebContentsView, session, ipcMain, dialog, shell, clipboard, Menu, nativeTheme, protocol, net } = require('electron');
+const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
 
@@ -20,9 +21,15 @@ app.setName('Haizhu Browser');
 app.disableHardwareAcceleration();
 
 const CHROME_H = 82;
+const NTP_URL = 'haizhu://newtab';
+// privileged internal scheme for the new-tab page (must run pre-ready)
+protocol.registerSchemesAsPrivileged([{
+  scheme: 'haizhu',
+  privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: false }
+}]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub;
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, attachProto = () => {};
 let historyStore;
 let panelOpen = false;
 
@@ -50,7 +57,8 @@ function attachSessionHooks(ses) {
 function createWindow() {
   win = new BaseWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 600,
-    backgroundColor: '#0d1117'
+    frame: false,
+    backgroundColor: '#17181c'
   });
   win.setMenuBarVisibility(false);
 
@@ -103,7 +111,7 @@ function layoutPanel(w, h) {
 // ---------- history ----------
 const history = {
   add(url, title) {
-    if (!url || url.startsWith('about:')) return;
+    if (!url || url.startsWith('about:') || url.startsWith('haizhu:')) return;
     const h = historyStore.get('items', []);
     h.unshift({ url, title, ts: Date.now() });
     if (h.length > 5000) h.pop();
@@ -144,6 +152,31 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('panel:toggle', () => { openPanel(); return panelOpen; });
+  // native app menu — an HTML popup inside the 82px chrome view would be
+  // clipped by its own viewport; Menu.popup renders outside all views.
+  ipcMain.handle('ui:menu', () => {
+    const send = id => chromeView.webContents.send('menu:cmd', id);
+    Menu.buildFromTemplate([
+      { label: 'New tab', accelerator: 'Ctrl+T', click: () => send('newtab') },
+      { label: 'New anonymous tab', accelerator: 'Ctrl+Shift+N', click: () => send('incognito') },
+      { type: 'separator' },
+      { label: 'Dev panel', accelerator: 'F12', click: () => send('panel') },
+      { label: 'Page DevTools', accelerator: 'Ctrl+Shift+I', click: () => send('devtools') },
+      { label: 'Toggle packet capture', click: () => send('capture') },
+      { label: 'View page source', accelerator: 'Ctrl+U', click: () => send('viewsource') },
+      { type: 'separator' },
+      { label: 'Zoom in', accelerator: 'Ctrl+=', click: () => send('zoomin') },
+      { label: 'Zoom out', accelerator: 'Ctrl+-', click: () => send('zoomout') },
+      { label: 'Actual size', accelerator: 'Ctrl+0', click: () => send('zoomreset') },
+      { label: 'Print…', accelerator: 'Ctrl+P', click: () => send('print') },
+      { type: 'separator' },
+      { label: 'Clear browsing data (this session)', click: () => send('clearcookies') },
+      { label: 'Open downloads folder', click: () => send('opendownloads') }
+    ]).popup({ window: win });
+    return true;
+  });
+  ipcMain.on('ntp:go', (e, q) => { if (!e.sender.isDestroyed()) e.sender.loadURL(tabs.normalizeUrl(q)); });
+  ipcMain.handle('ntp:history', () => (historyStore.get('items', []) || []).slice(0, 12));
 
   // capture
   ipcMain.handle('cap:toggle', async (e, tabId) => {
@@ -294,9 +327,11 @@ function registerIpc() {
   ipcMain.handle('page:print', () => { const t = tabs.active; t && t.wc.print(); return true; });
   ipcMain.handle('page:zoom', (e, d) => {
     const t = tabs.active; if (!t) return;
+    if (d === 'reset') { t.wc.setZoomFactor(1); return true; }
     const z = t.wc.getZoomFactor() + d;
     t.wc.setZoomFactor(Math.min(3, Math.max(0.25, z))); return true;
   });
+  ipcMain.handle('app:opendownloads', () => { shell.openPath(app.getPath('downloads')); return true; });
 }
 
 app.whenReady().then(async () => {
@@ -315,6 +350,16 @@ app.whenReady().then(async () => {
     app.on('child-process-gone', (e, d) => console.log('[cpg]', d.type, d.reason, d.exitCode));
     return;
   }
+  // internal new-tab page served on haizhu:// — must be registered on
+  // EVERY session (fromPartition('persist:default') is NOT defaultSession)
+  const ntpHandler = req => {
+    const u = new URL(req.url);
+    if (u.hostname === 'newtab' || u.hostname === 'ntp')
+      return net.fetch(pathToFileURL(path.join(__dirname, '..', 'renderer', 'ntp.html')).toString());
+    return new Response('not found', { status: 404 });
+  };
+  attachProto = ses => { try { ses.protocol.handle('haizhu', ntpHandler); } catch (e) {} };
+
   store = new Store('settings', {
     home: 'https://duckduckgo.com',
     searchEngine: 'duckduckgo',
@@ -336,11 +381,12 @@ app.whenReady().then(async () => {
     fingerprint, scripts, captures, sniffer, adblock, proxy, store,
     history, broadcast,
     layoutPanel,
-    onSession: s => { if (hub) hub.attach(s); }
+    onSession: s => { attachProto(s); if (hub) hub.attach(s); }
   });
   ai = new AIModule(store, null);
 
   const ses = defaultSession();
+  attachProto(ses);
   hub = new WebRequestHub();
   // subscribers are registered ONCE (session-agnostic); hub.attach() arms a session
   hub.on('before', d => { // userscript .user.js install interception

@@ -98,9 +98,14 @@ contextBridge.exposeInMainWorld('hz', {
     print: () => invoke('page:print'),
     zoom: d => invoke('page:zoom', d)
   },
+  ui: {
+    menu: () => invoke('ui:menu'),
+    onMenuCmd: fn => on('menu:cmd', fn)
+  },
   app: {
     version: () => invoke('app:version'),
-    winctl: op => invoke('win:ctl', op)
+    winctl: op => invoke('win:ctl', op),
+    opendownloads: () => invoke('app:opendownloads')
   },
   settings: {
     get: k => invoke('settings:get', k),

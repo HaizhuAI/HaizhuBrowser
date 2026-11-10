@@ -7,6 +7,7 @@ const activeTab = async () => (await hz.tabs.list()).find(t => t.id === hzActive
 let hzActiveId = null;
 
 // ---------- page switching ----------
+$('#pClose').onclick = () => hz.panel.toggle();
 document.querySelectorAll('#ptabs .pt').forEach(el => {
   el.onclick = () => {
     document.querySelectorAll('#ptabs .pt').forEach(x => x.classList.toggle('active', x === el));
