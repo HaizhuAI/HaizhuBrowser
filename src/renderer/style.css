@@ -48,8 +48,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
 .hidden { display: none !important; }
 
 /* ================= CHROME UI ================= */
-#chrome { -webkit-app-region: drag; user-select: none; }
-#chrome button, #chrome input, #tabstrip, #tabstrip * { -webkit-app-region: no-drag; }
+/* app-region:drag is a no-op inside WebContentsView (it swallows input without
+   moving the window) — dragging is implemented via win:drag-begin IPC. */
+#chrome { user-select: none; }
 
 /* --- row 1: tab strip --- */
 #tabrow {
@@ -127,7 +128,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--acc); }
 }
 .tbtn:hover { background: var(--tab-hover); }
 .tbtn:active { background: var(--bg3); }
-#dragspace { flex: 1; }
+#dragspace { flex: 1; align-self: stretch; min-height: 32px; }
 #winctl { display: flex; align-self: stretch; }
 .wbtn {
   width: 46px; border: none; border-radius: 0; background: transparent;

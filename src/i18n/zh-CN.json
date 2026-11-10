@@ -87,5 +87,6 @@
   "env.persona": "指纹",
   "env.reseedConfirm": "为该环境轮换指纹身份？cookie/存储保留，身份变更。",
   "env.delConfirm": "删除此环境及其全部存储数据？",
-  "env.empty": "暂无环境。创建一个以隔离指纹、代理与存储。"
+  "env.empty": "暂无环境。创建一个以隔离指纹、代理与存储。",
+  "tb.restore": "还原"
 }

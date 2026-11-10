@@ -4,6 +4,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const invoke = (ch, ...args) => ipcRenderer.invoke(ch, ...args);
+const send = (ch, ...args) => ipcRenderer.send(ch, ...args);
 const on = (ch, fn) => { const h = (e, ...a) => fn(...a); ipcRenderer.on(ch, h); return () => ipcRenderer.removeListener(ch, h); };
 
 contextBridge.exposeInMainWorld('hz', {
@@ -115,6 +116,11 @@ contextBridge.exposeInMainWorld('hz', {
   app: {
     version: () => invoke('app:version'),
     winctl: op => invoke('win:ctl', op),
+    winstate: () => invoke('win:state'),
+    dragbegin: (x, y, sy) => send('win:drag-begin', x, y, sy),
+    dragmove: (x, y, sy) => send('win:drag-move', x, y, sy),
+    dragend: () => send('win:drag-end'),
+    onWinState: fn => on('win-state', fn),
     opendownloads: () => invoke('app:opendownloads'),
     i18n: () => invoke('app:i18n'),
     theme: () => invoke('app:theme'),
@@ -124,5 +130,15 @@ contextBridge.exposeInMainWorld('hz', {
   settings: {
     get: k => invoke('settings:get', k),
     set: (k, v) => invoke('settings:set', k, v)
+  },
+  // test-only: only resolves when the main process registered dev hooks (HZ_EVAL)
+  dev: {
+    click: (x, y) => invoke('dev:click', x, y),
+    dblclick: (x, y) => invoke('dev:dblclick', x, y),
+    restore: () => invoke('dev:restore'),
+    shot: n => invoke('dev:shot', n),
+    resize: (w, h) => invoke('dev:resize', w, h),
+    probe: () => invoke('dev:probe'),
+    drag: (x, y, dx, dy) => invoke('dev:drag', x, y, dx, dy)
   }
 });

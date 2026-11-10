@@ -69,9 +69,39 @@ tabstrip.addEventListener('auxclick', e => {
   const t = e.target.closest('.tab');
   if (t && e.button === 1) hz.tabs.close(+t.dataset.id);
 });
-$('#dragspace').addEventListener('dblclick', () => hz.tabs.open('newtab'));
+// window controls — real min/max/close + maximize/restore icon sync.
+// Titlebar empty area double-click toggles maximize (Chrome behavior).
+const MAX_SVG = '<svg viewBox="0 0 12 12" width="12" height="12"><rect x="2.5" y="2.5" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1"/></svg>';
+const RESTORE_SVG = '<svg viewBox="0 0 12 12" width="12" height="12"><rect x="1.6" y="3.6" width="6.8" height="6.8" rx="1" fill="none" stroke="currentColor" stroke-width="1"/><path d="M3.8 3.4V2.4a.8.8 0 0 1 .8-.8h5.2a.8.8 0 0 1 .8.8v5.2a.8.8 0 0 1-.8.8H8.8" fill="none" stroke="currentColor" stroke-width="1"/></svg>';
+const syncMaxIcon = st => {
+  const b = $('#wMax');
+  b.innerHTML = st && st.max ? RESTORE_SVG : MAX_SVG;
+  b.title = tr(st && st.max ? 'tb.restore' : 'tb.max');
+};
+$('#wMin').onclick = () => hz.app.winctl('min');
+$('#wMax').onclick = async () => syncMaxIcon(await hz.app.winctl('max'));
+$('#wClose').onclick = () => hz.app.winctl('close');
+hz.app.winstate().then(syncMaxIcon);
+if (hz.app.onWinState) hz.app.onWinState(syncMaxIcon);
+// dblclick on any non-interactive titlebar area toggles maximize — single
+// delegated listener so bubbled events can't double-toggle.
 $('#tabrow').addEventListener('dblclick', e => {
-  if (e.target.id === 'tabrow' || e.target.id === 'tabstrip') hz.tabs.open('newtab');
+  if (e.target.closest('button, input, .tab, a')) return;
+  hz.app.winctl('max');
+});
+// titlebar drag: manual implementation (app-region doesn't work in WebContentsView)
+$('#chrome').addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  if (e.target.closest('button, input, .tab, a, [contenteditable]')) return;
+  hz.app.dragbegin(e.clientX, e.clientY, e.screenY || 0);
+  const move = ev => hz.app.dragmove(ev.clientX, ev.clientY, ev.screenY || 0);
+  const up = () => {
+    hz.app.dragend();
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
 });
 
 const openIncognito = () => hz.tabs.open('newtab', { incognito: true, partition: 'incognito:' + Date.now() });
@@ -137,10 +167,6 @@ hz.tabs.onAdded(t => { refresh(); });
 hz.tabs.onClosed(id => { refresh(); });
 hz.tabs.onActivated((id, t) => { activeId = id; const i = tabs.findIndex(x => x.id === id); if (i >= 0) tabs[i] = t; render(); });
 if (hz.panel.onState) hz.panel.onState(open => $('#bPanel').classList.toggle('active', !!open));
-
-$('#wMin').onclick = () => hz.app.winctrl('min');
-$('#wMax').onclick = () => hz.app.winctrl('max');
-$('#wClose').onclick = () => hz.app.winctrl('close');
 
 // i18n + theme bootstrap and live updates
 hz.app.i18n().then(p => { STR = p.strings; applyI18n(); render(); });

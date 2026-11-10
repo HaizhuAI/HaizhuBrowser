@@ -87,5 +87,6 @@
   "env.persona": "Persona",
   "env.reseedConfirm": "Rotate fingerprint identity for this env? Cookies/storage stay; identity changes.",
   "env.delConfirm": "Delete this environment and ALL its stored data?",
-  "env.empty": "No environments yet. Create one to isolate fingerprint + proxy + storage."
+  "env.empty": "No environments yet. Create one to isolate fingerprint + proxy + storage.",
+  "tb.restore": "Restore"
 }

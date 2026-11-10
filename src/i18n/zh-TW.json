@@ -87,5 +87,6 @@
   "env.persona": "指紋",
   "env.reseedConfirm": "為該環境輪換指紋身份？cookie/儲存保留，身份變更。",
   "env.delConfirm": "刪除此環境及其全部儲存資料？",
-  "env.empty": "尚無環境。建立一個以隔離指紋、代理與儲存。"
+  "env.empty": "尚無環境。建立一個以隔離指紋、代理與儲存。",
+  "tb.restore": "還原"
 }

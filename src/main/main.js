@@ -1,5 +1,5 @@
 'use strict';
-const { app, BaseWindow, WebContentsView, session, ipcMain, dialog, shell, clipboard, Menu, nativeTheme, protocol, net } = require('electron');
+const { app, BaseWindow, WebContentsView, session, ipcMain, dialog, shell, clipboard, Menu, nativeTheme, protocol, net, screen } = require('electron');
 const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
@@ -82,6 +82,13 @@ function createWindow() {
     backgroundColor: '#1b1c20'
   });
   win.setMenuBarVisibility(false);
+  for (const ev of ['maximize', 'unmaximize', 'minimize', 'restore']) {
+    win.on(ev, () => {
+      if (win && !win.isDestroyed() && chromeView && !chromeView.webContents.isDestroyed()) {
+        chromeView.webContents.send('win-state', { max: win.isMaximized(), min: win.isMinimized() });
+      }
+    });
+  }
 
   // chrome UI
   chromeView = new WebContentsView({
@@ -352,9 +359,55 @@ function registerIpc() {
   ipcMain.handle('hist:clear', () => { history.clear(); return true; });
   ipcMain.handle('app:version', () => app.getVersion());
   ipcMain.handle('win:ctl', (e, op) => {
-    op === 'min' ? win.minimize() : op === 'max' ? (win.isMaximized() ? win.unmaximize() : win.maximize()) : win.close();
-    return true;
+    if (!win || win.isDestroyed()) return { max: false };
+    if (op === 'min') win.minimize();
+    else if (op === 'close') { win.close(); return { max: false }; }
+    else win.isMaximized() ? win.unmaximize() : win.maximize();
+    return { max: win.isMaximized() };
   });
+  ipcMain.handle('win:state', () => (win && !win.isDestroyed()) ? { max: win.isMaximized(), min: win.isMinimized() } : { max: false, min: false });
+  // manual titlebar drag: -webkit-app-region:drag is a no-op inside
+  // WebContentsView, so the renderer forwards mouse screen-coords and the
+  // main process moves the window. Includes Chrome behaviors: drag-from-
+  // maximized restores under the cursor, top-edge drag maximizes (snap).
+  let dragSt = null;
+  // x,y are client (chromeView/window) coords — present for real and
+  // synthesized input. sy is screenY when available (real input only),
+  // used for the top-edge snap check.
+  ipcMain.on('win:drag-begin', (e, sx, sy, scrY) => {
+    dragSt = { sx, sy, scrY, pos: win.getPosition(), maxed: win.isMaximized(), moved: false };
+  });
+  ipcMain.on('win:drag-move', (e, x, y, scrY) => {
+    if (!dragSt || win.isDestroyed()) return;
+    const dx = x - dragSt.sx, dy = y - dragSt.sy;
+    if (!dragSt.moved && dx * dx + dy * dy < 16) return;
+    if (dragSt.maxed) {
+      // pull-down from maximized: restore with cursor holding the bar
+      const nb = win.getNormalBounds(), mb = win.getBounds();
+      const ratio = mb.width ? Math.min(1, Math.max(0, (x - mb.x) / mb.width)) : 0.5;
+      dragSt.maxed = false;
+      dragSt.moved = true;
+      dragSt.grabX = Math.round(nb.width * ratio);
+      dragSt.grabY = 14;
+      win.unmaximize();
+      win.setPosition(Math.round(x - dragSt.grabX), Math.round(y - dragSt.grabY));
+      dragSt.sx = x; dragSt.sy = y; dragSt.pos = win.getPosition();
+      return;
+    }
+    dragSt.moved = true;
+    if (scrY) { // top-edge snap only verifiable with real screen coords
+      const wa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+      if (scrY <= wa.y + 4) {
+        if (!win.isMaximized()) { win.maximize(); dragSt.maxed = true; dragSt.moved = false; }
+        dragSt.sx = x; dragSt.sy = y; dragSt.pos = win.getPosition();
+        return;
+      }
+    }
+    const gx = dragSt.grabX ?? (dragSt.sx - dragSt.pos[0]);
+    const gy = dragSt.grabY ?? (dragSt.sy - dragSt.pos[1]);
+    if (!win.isMaximized()) win.setPosition(Math.round(x - gx), Math.round(y - gy));
+  });
+  ipcMain.on('win:drag-end', () => { dragSt = null; });
   ipcMain.handle('settings:get', (e, k) => store.get(k));
   ipcMain.handle('settings:set', (e, k, v) => {
     store.set(k, v);
@@ -506,6 +559,63 @@ app.whenReady().then(async () => {
     });
   }
   registerIpc();
+  // test-only hooks: real OS-level input events + window state assertions.
+  // Registered ONLY when HZ_EVAL is set — never present in production.
+  if (process.env.HZ_EVAL) {
+    ipcMain.handle('dev:click', async (e, x, y) => {
+      chromeView.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 40));
+      chromeView.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 350));
+      return { max: win.isMaximized(), min: win.isMinimized(), focused: win.isFocused(), visible: win.isVisible() };
+    });
+    ipcMain.handle('dev:dblclick', async (e, x, y) => {
+      for (let i = 0; i < 2; i++) {
+        chromeView.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: i + 1 });
+        await new Promise(r => setTimeout(r, 30));
+        chromeView.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: i + 1 });
+        if (!i) await new Promise(r => setTimeout(r, 60));
+      }
+      await new Promise(r => setTimeout(r, 350));
+      return { max: win.isMaximized() };
+    });
+    ipcMain.handle('dev:restore', () => { try { win.restore(); win.focus(); } catch (e) {} return { min: win.isMinimized(), max: win.isMaximized() }; });
+    ipcMain.handle('dev:drag', async (e, x, y, dx, dy) => {
+      const before = win.getPosition();
+      chromeView.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(x), y: Math.round(y) });
+      chromeView.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 });
+      for (let i = 1; i <= 6; i++) {
+        chromeView.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(x + dx * i / 6), y: Math.round(y + dy * i / 6) });
+        await new Promise(r => setTimeout(r, 30));
+      }
+      chromeView.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(x + dx), y: Math.round(y + dy), button: 'left', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 400));
+      return { before, after: win.getPosition() };
+    });
+    ipcMain.handle('dev:shot', async (e, name) => {
+      const dir = process.env.HZ_SHOT || path.join(app.getPath('temp'), 'hzshot');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, String(name) + '.png'), (await chromeView.webContents.capturePage()).toPNG());
+      if (panelView) fs.writeFileSync(path.join(dir, String(name) + '-panel.png'), (await panelView.webContents.capturePage()).toPNG());
+      const t = tabs && tabs.active;
+      if (t) fs.writeFileSync(path.join(dir, String(name) + '-tab.png'), (await t.wc.capturePage()).toPNG());
+      return true;
+    });
+    ipcMain.handle('dev:resize', (e, w, h) => { win.setSize(w, h); return win.getSize(); });
+    ipcMain.handle('dev:probe', async () => {
+      const before = { max: win.isMaximized(), min: win.isMinimized(), maxable: win.isMaximizable(), minable: win.isMinimizable(), resizable: win.isResizable() };
+      win.maximize();
+      await new Promise(r => setTimeout(r, 500));
+      const after = { max: win.isMaximized(), min: win.isMinimized() };
+      let ctlResult = 'not-run';
+      try {
+        const r2 = await ipcMain.emit ? 'has-emit' : 'no-emit';
+        ctlResult = r2;
+      } catch (e) { ctlResult = e.message; }
+      win.unmaximize();
+      return { before, after, bounds: win.getNormalBounds(), resizable: win.isResizable() };
+    });
+  }
   createWindow();
   nativeTheme.on('updated', applyTheme);
   applyTheme();

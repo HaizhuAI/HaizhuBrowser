@@ -2,6 +2,18 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.5.1] — 2025-11-10
+
+### Fixed / 修复（severity-1：窗口控制全失效）
+- **最小化/最大化/关闭按钮真实可用** — 根因：chrome.js 尾部一段旧代码用拼错的 `hz.app.winctrl`（少 t）覆盖了正确的 onclick 绑定，三个按钮自 v1.3.0 起纯装饰。已删除旧绑定并为最大化/还原图标做状态同步（`win-state` 广播 + `win:state` 查询）
+- **标题栏拖拽** — `-webkit-app-region:drag` 在 WebContentsView 内是黑洞（吞掉输入却不移动窗口）：改为渲染进程转发 `clientX/Y` + 主进程 `setPosition` 的手动拖拽，支持**最大化下拉还原**（光标等比吸附）与**顶部贴边最大化**（snap）
+- **标题栏双击最大化/还原** — 修复 `dblclick` 同时命中 `#dragspace` 与 `#tabrow` 两层监听导致连切两次净零的问题，改为单委托监听；`#dragspace` 高度塌陷为 0（flex-end 布局无内在高度）导致命中测试落空，补 `align-self:stretch`
+- `win:ctl` 在窗口销毁后读取状态崩溃（close 路径）加防御
+- 测试钩子 `dev:click/dblclick/drag/shot/resize/probe`（仅 `HZ_EVAL` 环境变量存在时注册，不进生产路径）
+
+### Verified / 实测验收（模拟真人点击 sendInputEvent，打包产物上验证）
+- 拖拽 `[11,0]→[140,69]` ✓｜双击标题栏最大化 ✓｜再双击还原 ✓｜最小化真隐藏 ✓｜还原 ✓｜关闭进程退出 ✓｜960px 响应式控件完整 ✓
+
 ## [1.5.0] — 2025-11-10
 
 ### New / 新增
