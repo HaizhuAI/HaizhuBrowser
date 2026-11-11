@@ -18,6 +18,7 @@ const { TabManager } = require('./tabs');
 const { I18n } = require('./i18n');
 const { McpServer } = require('./mcp');
 const { Stealth } = require('./stealth');
+const { TempMail } = require('./tempmail');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -48,7 +49,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -170,7 +171,7 @@ const history = {
 function registerIpc() {
   const ctx = {
     openTab: (u, a) => tabs.openTab(u, a !== false),
-    captures, sniffer, scripts,
+    captures, sniffer, scripts, tempmail,
     cookies: cookieApi,
     history: l => history.list(l),
     download: (url, name) => m3u8.download(url, name),
@@ -512,6 +513,18 @@ function registerIpc() {
   ipcMain.handle('mcp:set', (e, cfg) => mcp ? mcp.applyConfig(cfg) : null);
   ipcMain.handle('mcp:regen', () => mcp ? mcp.regenToken() : null);
   ipcMain.handle('mcp:config', () => mcp ? mcp.clientConfig(mcp.installBridge()) : null);
+
+  ipcMain.handle('mail:providers', () => tempmail.providers());
+  ipcMain.handle('mail:gen', (e, o) => tempmail.generate(o || {}));
+  ipcMain.handle('mail:accounts', () => tempmail.accounts.map(a => ({ id: a.id, provider: a.provider, address: a.address, type: a.type, createdAt: a.createdAt })));
+  ipcMain.handle('mail:inbox', (e, ref) => tempmail.inbox(ref));
+  ipcMain.handle('mail:read', (e, ref, msgId) => tempmail.read(ref, msgId));
+  ipcMain.handle('mail:extract', (e, ref, msgId) => tempmail.readExtract(ref, msgId));
+  ipcMain.handle('mail:delmsg', (e, ref, msgId) => tempmail.deleteMessage(ref, msgId));
+  ipcMain.handle('mail:extend', (e, ref) => tempmail.extend(ref));
+  ipcMain.handle('mail:send', (e, ref, to, subject, text) => tempmail.send(ref, to, subject, text));
+  ipcMain.handle('mail:wait', (e, ref, o) => tempmail.waitForMail(ref, o || {}));
+  ipcMain.handle('mail:remove', (e, ref) => tempmail.remove(ref));
 }
 
 app.whenReady().then(async () => {
@@ -564,6 +577,7 @@ app.whenReady().then(async () => {
   adblock = new AdBlock(store);
   extMgr = new ExtensionManager(store);
   stealth = new Stealth();
+  tempmail = new TempMail(store);
 
   tabs = new TabManager({
     get win() { return win; },
@@ -636,7 +650,7 @@ app.whenReady().then(async () => {
   ai = new AIModule(store, null);
 
   mcp = new McpServer(store, {
-    tabs, ai, captures, sniffer, m3u8, proxy, profiles, adblock, scripts, stealth,
+    tabs, ai, captures, sniffer, m3u8, proxy, profiles, adblock, scripts, stealth, tempmail,
     history: l => history.list(l),
     bookmarks: () => store.get('bookmarks', []),
     applyNetworkStack,

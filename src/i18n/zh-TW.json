@@ -132,5 +132,17 @@
   "st.sec": "人機驗證應對",
   "st.desc": "真 Chrome 基線面（UA + UA-CH + chrome 物件 + 外掛 + 權限一致性）常開。自檢按常見反爬探測逐項檢查當前標籤；過驗證按鈕以真人軌跡點擊 Turnstile 複選框。",
   "st.audit": "反爬自檢",
-  "st.solve": "過 Turnstile"
+  "st.solve": "過 Turnstile",
+  "nav.mail": "信箱",
+  "mail.username": "使用者名稱（可選）",
+  "mail.new": "+ 新增信箱",
+  "mail.inbox": "收件匣",
+  "mail.refresh": "重新整理",
+  "mail.wait": "等待郵件",
+  "mail.waiting": "等待郵件中（最多2分鐘）…",
+  "mail.from": "寄件者",
+  "mail.subject": "主旨",
+  "mail.date": "時間",
+  "mail.empty": "尚無信箱。點產生——Emailnator 提供真正的 @gmail.com 位址。",
+  "mail.nomail": "尚無郵件"
 }

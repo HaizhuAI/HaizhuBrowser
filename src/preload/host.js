@@ -152,6 +152,19 @@ contextBridge.exposeInMainWorld('hz', {
     menu: id => send('bm:menu', id),
     onChange: fn => on('bm-changed', fn)
   },
+  mail: {
+    providers: () => invoke('mail:providers'),
+    gen: o => invoke('mail:gen', o),
+    accounts: () => invoke('mail:accounts'),
+    inbox: ref => invoke('mail:inbox', ref),
+    read: (ref, id) => invoke('mail:read', ref, id),
+    extract: (ref, id) => invoke('mail:extract', ref, id),
+    delmsg: (ref, id) => invoke('mail:delmsg', ref, id),
+    extend: ref => invoke('mail:extend', ref),
+    send: (ref, to, subject, text) => invoke('mail:send', ref, to, subject, text),
+    wait: (ref, o) => invoke('mail:wait', ref, o),
+    remove: ref => invoke('mail:remove', ref)
+  },
   dev: {
     click: (x, y) => invoke('dev:click', x, y),
     dblclick: (x, y) => invoke('dev:dblclick', x, y),

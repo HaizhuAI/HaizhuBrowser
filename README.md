@@ -24,6 +24,10 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 |---|---|
 | <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
+| Temp mail panel (OTP capture) |  |
+|---|---|
+| <img src="docs/screenshots/tempmail-panel.png" width="640"> |  |
+
 | Android — main | Android — menu |
 |---|---|
 | <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
@@ -54,6 +58,7 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **Settings** | `haizhu://settings` — appearance, language, startup, search engine, privacy, MCP, about | — |
 | **MCP server** | Built-in **Model Context Protocol** endpoint — drive the whole browser from Claude Desktop / Codex / any MCP agent: tabs, navigation, DOM, cookies, capture+HAR, sniffing, environments, proxies, adblock, userscripts, AI | — |
 | **Human-verification readiness** | Always-on real-Chrome baseline (wire UA + UA-CH, chrome object, plugins↔mimeTypes, permissions↔Notification quirk, userAgentData, soft-GL mask) injected via CDP into **all frames incl. challenge iframes**, zero DOM trace; anti-bot selftest + Turnstile solver + trusted human-trajectory input | — |
+| **Temp mail** | Disposable inboxes for sign-up flows — **Emailnator (real @gmail.com pool, bypasses disposable-domain filters)**, mail.tm, TempMail+; OTP + confirm-link auto-extraction, wait-for-mail poller; panel UI + AI/MCP tools | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
 ## MCP — drive the browser from any agent
@@ -98,7 +103,7 @@ nothing is reachable off-machine.
   } } }
   ```
 
-**Tool surface (40 tools):** `list_tabs` / `new_tab` / `close_tab` /
+**Tool surface (47 tools):** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate` (omnibox-style URL + search normalization) /
 `get_url` / `page_text` / `page_html` / `dom_query` / `click` / `fill` /
 `run_js` / `wait` / `screenshot` (real PNG image block) /
@@ -108,13 +113,20 @@ nothing is reachable off-machine.
 `list_profiles` / `launch_profile` / `profile_persona` /
 `proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
 `list_scripts` / `bookmarks` / `history` / `ai_chat` /
-`stealth_audit` / `human_click` / `human_type` / `solve_turnstile`.
+`stealth_audit` / `human_click` / `human_type` / `solve_turnstile` /
+`tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
+`tempmail_delete_message` / `tempmail_extend` / `tempmail_wait`.
 
 A typical agent session: `start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` gives you a full sniffed session; `dom_query` →
 `click` → `fill` → `screenshot` drives page automation; `stealth_audit` →
 `solve_turnstile` → `human_click`/`human_type` handles anti-bot surfaces with
 trusted human-trajectory input.
+
+A typical **sign-up flow**: `tempmail_generate` (provider `emailnator` → real
+@gmail.com) → `fill` the registration form → `tempmail_wait` (blocks until the
+verification mail lands, returns extracted `otp` + confirm `links`) → `fill`/
+`navigate` the code or link — no human inbox needed.
 
 ## Reverse-engineering pedigree
 

@@ -24,6 +24,10 @@
 |---|---|
 | <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
+| 临时邮箱面板（OTP 抽取） |  |
+|---|---|
+| <img src="docs/screenshots/tempmail-panel.png" width="640"> |  |
+
 | 安卓 — 主界面 | 安卓 — 菜单 |
 |---|---|
 | <img src="docs/screenshots/android/main.png" height="400"> | <img src="docs/screenshots/android/menu.png" height="400"> |
@@ -54,6 +58,7 @@
 | **设置页** | `haizhu://settings`——外观、语言、启动、搜索引擎、隐私、MCP、关于 | — |
 | **MCP 服务** | 内嵌 **Model Context Protocol** 端点——Claude Desktop / Codex / 任意 MCP 智能体可直接驱动整台浏览器：标签、导航、DOM、Cookie、抓包+HAR、资源嗅探、指纹环境、代理、广告拦截、油猴、AI | — |
 | **人机验证应对** | 常开真 Chrome 基线（线级 UA + UA-CH、chrome 对象、插件↔mimeType、权限↔Notification 怪癖、userAgentData、软渲 WebGL 遮罩），CDP 全 frame 注入含跨域挑战 iframe、零 DOM 痕迹；反爬自检 + Turnstile 求解器 + trusted 真人轨迹输入 | — |
+| **临时邮箱** | 注册登录用一次性收件箱——**Emailnator（真 @gmail.com 池，绕过一次性域名过滤）**、mail.tm、TempMail+；自动抽取验证码 + 确认链接，等信轮询原语；面板 UI + AI/MCP 工具 | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
 
 ## MCP —— 让任意智能体驱动浏览器
@@ -95,7 +100,7 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
   } } }
   ```
 
-**工具面（40 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
+**工具面（47 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate`（地址栏式 URL+搜索词归一化）/ `get_url` /
 `page_text` / `page_html` / `dom_query` / `click` / `fill` / `run_js` /
 `wait` / `screenshot`（真 PNG 图像块）/ `start_capture` / `stop_capture` /
@@ -104,12 +109,18 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
 `storage_get` / `list_profiles` / `launch_profile` / `profile_persona` /
 `proxy_list` / `proxy_set` / `adblock_state` / `adblock_toggle` /
 `list_scripts` / `bookmarks` / `history` / `ai_chat` /
-`stealth_audit` / `human_click` / `human_type` / `solve_turnstile`。
+`stealth_audit` / `human_click` / `human_type` / `solve_turnstile` /
+`tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
+`tempmail_delete_message` / `tempmail_extend` / `tempmail_wait`。
 
 典型智能体会话：`start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` 完成一次完整抓包；`dom_query` → `click` →
 `fill` → `screenshot` 完成页面自动化；`stealth_audit` → `solve_turnstile` →
 `human_click`/`human_type` 以 trusted 真人轨迹应对反爬面。
+
+典型**注册登录流**：`tempmail_generate`（provider `emailnator` → 真 @gmail.com）→
+`fill` 填注册表 → `tempmail_wait`（阻塞至验证邮件到达，返回抽出的 `otp` 验证码 +
+确认 `links`）→ 回填验证码或直接 `navigate` 打开确认链接——全程不需要真人邮箱。
 
 ## 逆向渊源
 

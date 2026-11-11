@@ -100,7 +100,14 @@ const SCHEMAS = [
   { name: 'stealth_audit', desc: 'Anti-bot surface selftest — webdriver/chrome/plugins/UA-CH/permissions/WebGL etc → per-check pass/FAIL', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } } } },
   { name: 'human_click', desc: 'Click at page coords with trusted human-like bezier trajectory + jitter timing', inputSchema: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, tabId: { type: 'number' } }, required: ['x', 'y'] } },
   { name: 'human_type', desc: 'Type text into the focused element with per-key human delays (trusted events)', inputSchema: { type: 'object', properties: { text: { type: 'string' }, tabId: { type: 'number' } }, required: ['text'] } },
-  { name: 'solve_turnstile', desc: 'Best-effort Cloudflare Turnstile/managed-challenge pass — locates the challenge iframe, human-clicks the checkbox zone, polls for token/cf_clearance', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, timeout: { type: 'number' } } } }
+  { name: 'solve_turnstile', desc: 'Best-effort Cloudflare Turnstile/managed-challenge pass — locates the challenge iframe, human-clicks the checkbox zone, polls for token/cf_clearance', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, timeout: { type: 'number' } } } },
+  { name: 'tempmail_generate', desc: 'Create a disposable mailbox → {address,id,provider}. provider: emailnator (real @gmail, default) | mailtm | tempmailplus. kind: emailnator → gmail/domain/plus/dot; tempmailplus → mailto.plus,fexbox.org,…', inputSchema: { type: 'object', properties: { provider: { type: 'string' }, kind: { type: 'string' }, username: { type: 'string' } } } },
+  { name: 'tempmail_accounts', desc: 'List saved temp-mail accounts', inputSchema: { type: 'object', properties: {} } },
+  { name: 'tempmail_inbox', desc: 'List inbox messages of a mailbox (id/from/subject/date)', inputSchema: { type: 'object', properties: { address: { type: 'string' } }, required: ['address'] } },
+  { name: 'tempmail_read', desc: 'Read a message → subject/from/date/text/otp/links (otp+links auto-extracted)', inputSchema: { type: 'object', properties: { address: { type: 'string' }, messageId: { type: 'string' } }, required: ['address', 'messageId'] } },
+  { name: 'tempmail_delete_message', desc: 'Delete a message from a mailbox', inputSchema: { type: 'object', properties: { address: { type: 'string' }, messageId: { type: 'string' } }, required: ['address', 'messageId'] } },
+  { name: 'tempmail_extend', desc: 'Extend mailbox lifetime (emailnator only)', inputSchema: { type: 'object', properties: { address: { type: 'string' } }, required: ['address'] } },
+  { name: 'tempmail_wait', desc: 'Block until a matching mail lands → message + extracted otp + links. THE sign-up tool: submit form first, then call this. match = regex on subject+from', inputSchema: { type: 'object', properties: { address: { type: 'string' }, timeout: { type: 'number' }, match: { type: 'string' }, poll: { type: 'number' } }, required: ['address'] } }
 ];
 
 class McpServer {
@@ -270,7 +277,14 @@ class McpServer {
       adblock_toggle: () => { c.adblock.setEnabled(!!args.on); return { enabled: c.adblock.enabled }; },
       bookmarks: () => c.bookmarks ? c.bookmarks() : [],
       history: () => c.history(args.limit || 50),
-      ai_chat: async () => c.ai.chat(args.messages, { provider: args.provider, model: args.model })
+      ai_chat: async () => c.ai.chat(args.messages, { provider: args.provider, model: args.model }),
+      tempmail_generate: async () => { const a = await c.tempmail.generate(args); return { id: a.id, provider: a.provider, address: a.address, type: a.type }; },
+      tempmail_accounts: () => c.tempmail.accounts.map(a => ({ id: a.id, provider: a.provider, address: a.address, createdAt: a.createdAt })),
+      tempmail_inbox: async () => c.tempmail.inbox(args.address),
+      tempmail_read: async () => c.tempmail.readExtract(args.address, args.messageId),
+      tempmail_delete_message: async () => c.tempmail.deleteMessage(args.address, args.messageId),
+      tempmail_extend: async () => c.tempmail.extend(args.address),
+      tempmail_wait: async () => c.tempmail.waitForMail(args.address, { timeout: args.timeout, match: args.match, poll: args.poll })
     };
     if (BROWSER[name]) return text(await BROWSER[name](args));
     const tab = this.tab(args);

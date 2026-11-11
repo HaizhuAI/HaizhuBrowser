@@ -23,6 +23,7 @@
     <div class="pt" data-p="fp" data-i18n="nav.fingerprint">Fingerprint</div>
     <div class="pt" data-p="env" data-i18n="nav.envs">Envs</div>
     <div class="pt" data-p="ai" data-i18n="nav.ai">AI Agent</div>
+    <div class="pt" data-p="mail" data-i18n="nav.mail">Mail</div>
   </div>
   <div id="pbody">
     <!-- NETWORK CAPTURE -->
@@ -134,6 +135,32 @@
           <div>Model</div><input id="epModel" placeholder="gpt-4o-mini">
         </div>
         <button id="epAdd">Add</button>
+      </div>
+    </div>
+    <!-- TEMP MAIL -->
+    <div class="page" id="p-mail">
+      <div class="row">
+        <select id="mlProv" style="flex:1"></select>
+        <select id="mlKind"></select>
+      </div>
+      <div class="row">
+        <input id="mlUser" data-i18n-ph="mail.username" placeholder="username (optional)" style="flex:1">
+        <button id="mlGen" data-i18n="mail.new">+ New mailbox</button>
+      </div>
+      <div id="mlAccounts"></div>
+      <h3 class="sec"><span data-i18n="mail.inbox">Inbox</span> <span class="dim" id="mlCur"></span></h3>
+      <div class="row">
+        <button id="mlRefresh" data-i18n="mail.refresh">Refresh</button>
+        <button id="mlWait" data-i18n="mail.wait">Wait for mail</button>
+        <span class="dim" id="mlStatus"></span>
+      </div>
+      <table class="grid"><thead><tr><th data-i18n="mail.from">From</th><th data-i18n="mail.subject">Subject</th><th data-i18n="mail.date">Date</th></tr></thead>
+      <tbody id="mlRows"></tbody></table>
+      <div id="mlMsg" class="hidden">
+        <h3 class="sec" id="mlMsgSub"></h3>
+        <div class="dim" id="mlMsgMeta"></div>
+        <div id="mlOtp"></div>
+        <pre class="dump" id="mlMsgBody" style="max-height:240px;overflow:auto"></pre>
       </div>
     </div>
   </div>

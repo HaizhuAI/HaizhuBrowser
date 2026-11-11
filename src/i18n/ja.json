@@ -132,5 +132,17 @@
   "st.sec": "人間検証への対応",
   "st.desc": "本物の Chrome ベース面（UA + UA-CH + chrome オブジェクト + プラグイン + パーミッション整合）は常時有効。監査はアクティブタブを一般的なアンチボット検査に照合。ソルバーは人間の軌跡で Turnstile チェックボックスをクリック。",
   "st.audit": "アンチボット監査",
-  "st.solve": "Turnstile 突破"
+  "st.solve": "Turnstile 突破",
+  "nav.mail": "メール",
+  "mail.username": "ユーザー名（任意）",
+  "mail.new": "+ 新規メールボックス",
+  "mail.inbox": "受信トレイ",
+  "mail.refresh": "更新",
+  "mail.wait": "メールを待つ",
+  "mail.waiting": "メール待機中（最大2分）…",
+  "mail.from": "差出人",
+  "mail.subject": "件名",
+  "mail.date": "日時",
+  "mail.empty": "メールボックスがありません。生成すると本物の @gmail.com が使えます。",
+  "mail.nomail": "メッセージなし"
 }

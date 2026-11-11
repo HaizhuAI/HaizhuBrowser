@@ -132,5 +132,17 @@
   "st.sec": "Human-verification readiness",
   "st.desc": "Baseline real-Chrome surface (UA + UA-CH + chrome object + plugins + permissions) is always on. Audit checks the active tab against common anti-bot probes; solver clicks the Turnstile checkbox with a human trajectory.",
   "st.audit": "Anti-bot audit",
-  "st.solve": "Solve Turnstile"
+  "st.solve": "Solve Turnstile",
+  "nav.mail": "Mail",
+  "mail.username": "username (optional)",
+  "mail.new": "+ New mailbox",
+  "mail.inbox": "Inbox",
+  "mail.refresh": "Refresh",
+  "mail.wait": "Wait for mail",
+  "mail.waiting": "Waiting for mail (max 2m)…",
+  "mail.from": "From",
+  "mail.subject": "Subject",
+  "mail.date": "Date",
+  "mail.empty": "No mailbox yet. Generate one — Emailnator gives a real @gmail.com.",
+  "mail.nomail": "No messages"
 }

@@ -35,7 +35,7 @@ hz.settings.get('panelPage').then(p => {
   if (el) el.click();
 });
 function refreshPage(p) {
-  ({ net: loadCapture, res: loadRes, ck: loadCk, us: loadUs, ext: loadExt, px: loadPx, fp: loadFp, env: loadEnv, ai: loadAi })[p]?.();
+  ({ net: loadCapture, res: loadRes, ck: loadCk, us: loadUs, ext: loadExt, px: loadPx, fp: loadFp, env: loadEnv, ai: loadAi, mail: loadMail })[p]?.();
 }
 
 // ---------- capture ----------
@@ -388,6 +388,102 @@ hz.ai.onEvent(ev => {
   if (ev.type === 'tool') aiMsg('tool', '▶ ' + ev.data.name + ' ' + JSON.stringify(ev.data.args));
   if (ev.type === 'tool_result') aiMsg('tool', '◀ ' + String(ev.data.result).slice(0, 500));
   if (ev.type === 'error') aiMsg('tool', '✖ ' + ev.data);
+});
+
+// ---------- TEMP MAIL ----------
+let mlCurrent = null; // selected account
+async function loadMail() {
+  if (!$('#mlProv').dataset.done) {
+    const ps = await hz.mail.providers();
+    $('#mlProv').innerHTML = ps.map(p => `<option value="${p.id}" data-kinds='${JSON.stringify(p.kinds)}' data-def="${p.defaultKind}">${p.label}</option>`).join('');
+    $('#mlProv').dataset.done = '1';
+    syncMlKinds();
+  }
+  renderAccounts();
+}
+function syncMlKinds() {
+  const o = $('#mlProv').selectedOptions[0];
+  const kinds = JSON.parse(o?.dataset.kinds || '[]');
+  $('#mlKind').innerHTML = kinds.map(k => `<option value="${esc(k)}"${k === o?.dataset.def ? ' selected' : ''}>${esc(k)}</option>`).join('');
+}
+$('#mlProv').onchange = syncMlKinds;
+$('#mlGen').onclick = async () => {
+  $('#mlGen').disabled = true;
+  try {
+    const acc = await hz.mail.gen({ provider: $('#mlProv').value, kind: $('#mlKind').value, username: $('#mlUser').value.trim() || undefined });
+    mlCurrent = acc.id;
+    $('#mlUser').value = '';
+    renderAccounts(); loadInbox();
+  } catch (e) { $('#mlStatus').textContent = '✖ ' + (e.message || e); }
+  $('#mlGen').disabled = false;
+};
+async function renderAccounts() {
+  const list = await hz.mail.accounts();
+  $('#mlAccounts').innerHTML = list.map(a => `
+    <div class="ml-acc${a.id === mlCurrent ? ' sel' : ''}" data-sel="${a.id}">
+      <span class="ml-addr mono" title="${esc(a.address)}">${esc(a.address)}</span>
+      <span class="dim" style="font-size:10px">${esc(a.provider)}</span>
+      <button data-cp="${esc(a.address)}" title="copy">⧉</button>
+      <button data-rm="${a.id}" title="delete">✕</button>
+    </div>`).join('') || '<div class="dim">' + tr('mail.empty') + '</div>';
+}
+$('#mlAccounts').addEventListener('click', async e => {
+  const cp = e.target.closest('[data-cp]');
+  if (cp) { navigator.clipboard.writeText(cp.dataset.cp); return; }
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { await hz.mail.remove(rm.dataset.rm); if (mlCurrent === rm.dataset.rm) mlCurrent = null; renderAccounts(); $('#mlRows').innerHTML = ''; return; }
+  const sel = e.target.closest('[data-sel]');
+  if (sel) { mlCurrent = sel.dataset.sel; renderAccounts(); loadInbox(); }
+});
+async function loadInbox() {
+  if (!mlCurrent) { $('#mlRows').innerHTML = ''; $('#mlCur').textContent = ''; return; }
+  const acc = (await hz.mail.accounts()).find(a => a.id === mlCurrent);
+  $('#mlCur').textContent = '— ' + (acc ? acc.address : '');
+  try {
+    const ib = await hz.mail.inbox(mlCurrent);
+    $('#mlRows').innerHTML = ib.messages.map(m => `
+      <tr class="ml-msg" data-id="${esc(m.id)}"><td class="mono">${esc(m.from.slice(0, 40))}</td>
+      <td>${esc(m.subject.slice(0, 60))}</td><td class="dim">${esc(String(m.date).slice(0, 19))}</td></tr>`).join('')
+      || `<tr><td colspan="3" class="dim">${tr('mail.nomail')}</td></tr>`;
+    $('#mlStatus').textContent = '';
+  } catch (e) { $('#mlStatus').textContent = '✖ ' + (e.message || e); }
+}
+$('#mlRefresh').onclick = loadInbox;
+$('#mlWait').onclick = async () => {
+  if (!mlCurrent) return;
+  $('#mlStatus').textContent = tr('mail.waiting');
+  $('#mlWait').disabled = true;
+  try {
+    const hit = await hz.mail.wait(mlCurrent, { timeout: 120000 });
+    $('#mlStatus').textContent = '✔ ' + Math.round(hit.waitedMs / 1000) + 's';
+    showMailMsg(hit.account, hit.message, hit);
+    loadInbox();
+  } catch (e) { $('#mlStatus').textContent = '✖ ' + (e.message || e); }
+  $('#mlWait').disabled = false;
+};
+$('#mlRows').addEventListener('click', async e => {
+  const tr2 = e.target.closest('.ml-msg');
+  if (!tr2 || !mlCurrent) return;
+  $('#mlStatus').textContent = '…';
+  try {
+    const r = await hz.mail.extract(mlCurrent, tr2.dataset.id);
+    showMailMsg(r.account, r.message, r);
+    $('#mlStatus').textContent = '';
+  } catch (er) { $('#mlStatus').textContent = '✖ ' + (er.message || er); }
+});
+function showMailMsg(account, m, ext) {
+  $('#mlMsg').classList.remove('hidden');
+  $('#mlMsgSub').textContent = m.subject || '(no subject)';
+  $('#mlMsgMeta').textContent = (m.from || '') + ' · ' + (m.date || '');
+  const otp = ext.otp ? `<div class="ml-otp mono" data-cpotp title="copy">${esc(ext.otp)}</div>` : '';
+  const links = (ext.links || []).map(l => `<div class="mono" style="font-size:11px"><a href="#" data-open="${esc(l)}">${esc(l.slice(0, 90))}</a></div>`).join('');
+  $('#mlOtp').innerHTML = otp + links;
+  $('#mlMsgBody').textContent = ext.text || '(empty body)';
+}
+$('#mlOtp').addEventListener('click', e => {
+  if (e.target.closest('[data-cpotp]')) navigator.clipboard.writeText(e.target.closest('[data-cpotp]').textContent);
+  const a = e.target.closest('[data-open]');
+  if (a) { e.preventDefault(); hz.tabs.open(a.dataset.open); }
 });
 
 // active tab tracking

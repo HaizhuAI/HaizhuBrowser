@@ -126,7 +126,11 @@ const TOOLS = [
   { name: 'screenshot', desc: 'Capture current tab screenshot (base64 png)', params: {} },
   { name: 'list_scripts', desc: 'Installed userscripts matching current URL', params: {} },
   { name: 'history', desc: 'Recent history entries', params: { limit: 'number?' } },
-  { name: 'storage_get', desc: 'localStorage keys for current origin', params: {} }
+  { name: 'storage_get', desc: 'localStorage keys for current origin', params: {} },
+  { name: 'tempmail_new', desc: 'Create a disposable mailbox → {address}. provider: emailnator (real @gmail, default) | mailtm | tempmailplus', params: { provider: 'string?', kind: 'string?', username: 'string?' } },
+  { name: 'tempmail_inbox', desc: 'List messages of a temp mailbox (id/from/subject/date)', params: { address: 'string' } },
+  { name: 'tempmail_read', desc: 'Read a temp-mail message → subject/from/text/links', params: { address: 'string', messageId: 'string' } },
+  { name: 'tempmail_otp', desc: 'Wait for a mail to arrive, then return extracted OTP code + confirm links. For sign-up flows: call AFTER submitting the form.', params: { address: 'string', timeout: 'number?', match: 'string?' } }
 ];
 
 const AGENT_SYSTEM = `You are Haizhu Agent, an AI operator embedded in a developer browser.
@@ -207,6 +211,13 @@ class AIModule {
       case 'list_scripts': return c.scripts.matchesFor(wc.getURL(), true).map(s => s.meta.name + ' v' + s.meta.version);
       case 'history': return c.history(args.limit || 50);
       case 'storage_get': return await wc.executeJavaScript('(function(){try{return Object.entries(localStorage).map(([k,v])=>({k,v:String(v).slice(0,200)}))}catch(e){return []}})()', true);
+      case 'tempmail_new': {
+        const a = await c.tempmail.generate(args);
+        return { address: a.address, provider: a.provider, id: a.id };
+      }
+      case 'tempmail_inbox': return (await c.tempmail.inbox(args.address)).messages.slice(0, 50);
+      case 'tempmail_read': return await c.tempmail.readExtract(args.address, args.messageId);
+      case 'tempmail_otp': return await c.tempmail.waitForMail(args.address, { timeout: Math.min(args.timeout || 120000, 240000), match: args.match });
       default: return 'unknown tool ' + name;
     }
   }

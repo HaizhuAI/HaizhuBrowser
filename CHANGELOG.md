@@ -2,6 +2,27 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.9.0] — 2025-11-11
+
+### Added / 新增 — 临时邮箱（注册登录自动化，`src/main/tempmail.js`）
+逆向多个临时邮箱站点的内部接口后实现的三通道 provider 层，统一归一化账户/收件箱/信件模型，供面板 + AI Agent + MCP 共用：
+
+- **Emailnator**（主力）——**真 @gmail.com / googlemail.com 池**，不被一次性域名单过滤；逆向自其 Next.js 前端 bundle：`POST /api/generate-email {ids:[type]}`（gmail=8/domain=1/plus=2/dot=3）、`POST /api/message-list`、`GET /api/message/{id}`（正文在 `content` 字段）、`POST /api/extend-email`、`POST /api/delete-message/{id}`——免鉴权免验证码
+- **mail.tm**——官方开放 REST（hydra+JWT），独立收件箱需密码（自动托管）
+- **TempMail+**——开放 JSON API，**域内秒级送达**（实测 ~1.5s），支持发送（内部自测回环用）；12 个可选域名
+- **OTP/链接抽取器**——labeled 验证码正则（code/otp/verification/验证码…±数字）→ 兜底 4–8 位数字；`verify|confirm|activate|token|login…` 链接过滤
+- **`waitForMail`**——轮询收件箱直至命中 match 正则的信件 → 读信 + 抽取 OTP + 链接，一次性返回（Agent 注册流的关键原语：先提交表单再调它）
+- **面板「邮箱」页**——provider/kind 下拉（含 Emailnator 4 种 gmail 形态）+ 可选用户名 + 生成；账户卡列表（地址/provider/copy/delete）；收件箱表（发件人/主题/时间）+ 刷新 + 「等待邮件」；点信 → 主题/发件人/正文 + **OTP 大徽章（点击复制）** + confirm 链接（点击新标签打开）；四语言键
+- **AI Agent +4 工具**：`tempmail_new` / `tempmail_inbox` / `tempmail_read` / `tempmail_otp`——内置 agent 可直接在页面注册流程里完成「填邮箱→提交→等验证码→回填」闭环
+- **MCP +7 工具（共 47）**：`tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` / `tempmail_delete_message` / `tempmail_extend` / `tempmail_wait`——外部智能体（Claude/Codex/自研 agent）一行调用即可拿到真实收件地址与验证码
+- IPC `mail:*` 全套 + preload `hz.mail` 双通道暴露；mail.tm 限流退避重试 + 域名单缓存
+
+### Verified / 实测（打包产物 + 真实外部链路）
+- Emailnator：`generate → real googlemail.com → inbox → read` 实测含 **Kick 平台真实验证信，OTP `594204` 正确抽出**
+- TempMail+ 回环：`send → waitForMail → OTP + confirm 链接`，**1.5–3.1s**
+- MCP 端对端：`curl tools/call tempmail_generate → 外部发信 → tempmail_wait → otp+links` 全通
+- 面板实测截图 `docs/screenshots/tempmail-panel.png`
+
 ## [1.8.0] — 2025-11-11
 
 ### Added / 新增 — 人机验证应对体系（真 Chrome 基线层，常开）

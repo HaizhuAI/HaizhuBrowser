@@ -132,5 +132,17 @@
   "st.sec": "人机验证应对",
   "st.desc": "真 Chrome 基线面（UA + UA-CH + chrome 对象 + 插件 + 权限一致性）常开。自检按常见反爬探测逐项检查当前标签；过验证按钮以真人轨迹点击 Turnstile 复选框。",
   "st.audit": "反爬自检",
-  "st.solve": "过 Turnstile"
+  "st.solve": "过 Turnstile",
+  "nav.mail": "邮箱",
+  "mail.username": "用户名（可选）",
+  "mail.new": "+ 新建邮箱",
+  "mail.inbox": "收件箱",
+  "mail.refresh": "刷新",
+  "mail.wait": "等待邮件",
+  "mail.waiting": "正在等邮件（最多2分钟）…",
+  "mail.from": "发件人",
+  "mail.subject": "主题",
+  "mail.date": "时间",
+  "mail.empty": "还没有邮箱。点生成——Emailnator 给真 @gmail.com 地址。",
+  "mail.nomail": "暂无邮件"
 }
