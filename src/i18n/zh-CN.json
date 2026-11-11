@@ -144,5 +144,7 @@
   "mail.subject": "主题",
   "mail.date": "时间",
   "mail.empty": "还没有邮箱。点生成——Emailnator 给真 @gmail.com 地址。",
-  "mail.nomail": "暂无邮件"
+  "mail.nomail": "暂无邮件",
+  "hl.fast": "极速模式（拦截图片/字体/媒体）",
+  "hl.open": "⬇ 无头打开网址"
 }

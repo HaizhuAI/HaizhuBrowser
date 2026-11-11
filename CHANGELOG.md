@@ -2,6 +2,26 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.9.1] — 2025-11-11
+
+### Added / 新增 — 无头泳道（AI 自动化轻量通道，`src/main/headless.js`）
+对标 lightpanda-io/browser 的两条核心思路在 Electron 上的移植——**不渲染**和**砍重资源**：
+
+- **headless 页面池**——独立 `persist:hzheadless` 会话上的独立 offscreen `WebContents`：`offscreen:true`（跳过合成/光栅）、`images:false`（连解码都省）、`webgl:false`、自动播放关闭、帧率压到 1fps；图片/字体/媒体由 WebRequestHub `before` 订阅面统一 `{cancel}`，不走任何 DOM hack
+- **fast mode**——可视标签同样可开极速：按会话开关图片/字体/媒体拦截（样式表保留，保 DOM 结构），面板抓包页复选框一键切换
+- **会话管线复用**——headless 会话走与普通标签同一套 `attachProto + hub.attach + stealth.attachSession`，UA/UA-CH 真 Chrome 线级身份一致继承（对自动化站点的指纹面无损）
+- **面板**：抓包页新增「极速模式」复选 +「无头打开网址」按钮 + headless 页面列表（一键 TXT 抽取到请求详情区）——轻量页不占标签栏
+- **MCP +12 工具（共 59）**：`headless_open/list/close/nav/eval/text/html/query/click/fill/shot` + `fast_mode`——外部智能体可纯无头跑提取任务，`headless_shot` 返 PNG image 块
+- **内置 AI Agent +4 工具**：`headless_open/eval/text/close`
+
+### Fixed / 修复
+- `webContents.create()` 才是 Electron 独立 WebContents 构造面（初版误用 `new WebContents`）；headless id 字符串/数字双类型匹配（MCP 参数反序列化坑）
+
+### Verified / 实测（打包产物）
+- `headless_open example.com + Wikipedia` → 标题/URL/文本抽取/eval 全通，wiki 载入 ~2.4s（零渲染、零图片下载）
+- MCP 端对端：`headless_open → eval → text → close`，id 双类型兼容后全绿；`tools/list` = 59
+- `fast_mode` 开关于可视标签生效（图片域请求被 `{cancel}`）
+
 ## [1.9.0] — 2025-11-11
 
 ### Added / 新增 — 临时邮箱（注册登录自动化，`src/main/tempmail.js`）

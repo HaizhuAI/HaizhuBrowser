@@ -144,5 +144,7 @@
   "mail.subject": "件名",
   "mail.date": "日時",
   "mail.empty": "メールボックスがありません。生成すると本物の @gmail.com が使えます。",
-  "mail.nomail": "メッセージなし"
+  "mail.nomail": "メッセージなし",
+  "hl.fast": "高速モード（画像/フォント/メディアをブロック）",
+  "hl.open": "⬇ ヘッドレスで開く"
 }

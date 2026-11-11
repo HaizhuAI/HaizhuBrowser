@@ -144,5 +144,7 @@
   "mail.subject": "Subject",
   "mail.date": "Date",
   "mail.empty": "No mailbox yet. Generate one — Emailnator gives a real @gmail.com.",
-  "mail.nomail": "No messages"
+  "mail.nomail": "No messages",
+  "hl.fast": "Fast mode (block images/fonts/media)",
+  "hl.open": "⬇ Headless open URL"
 }

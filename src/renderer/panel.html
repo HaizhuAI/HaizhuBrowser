@@ -34,6 +34,11 @@
         <button id="capHar">Export HAR</button>
         <input id="capFilter" placeholder="filter url/type" style="flex:1">
       </div>
+      <div class="row" style="margin-top:6px">
+        <label style="font-size:12px"><input type="checkbox" id="fastOn"> <span data-i18n="hl.fast">Fast mode (block images/fonts/media)</span></label>
+        <button id="hlOpen" data-i18n="hl.open">⬇ Headless open URL</button>
+      </div>
+      <div id="hlList"></div>
       <table class="grid"><thead><tr><th>Method</th><th>URL</th><th>Status</th><th>Type</th><th>Size</th><th>ms</th></tr></thead>
       <tbody id="capRows"></tbody></table>
       <div id="capDetail" class="hidden"><h3 class="sec">Request detail</h3><pre class="dump" id="capDump"></pre></div>

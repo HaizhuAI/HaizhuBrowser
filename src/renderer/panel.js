@@ -36,6 +36,7 @@ hz.settings.get('panelPage').then(p => {
 });
 function refreshPage(p) {
   ({ net: loadCapture, res: loadRes, ck: loadCk, us: loadUs, ext: loadExt, px: loadPx, fp: loadFp, env: loadEnv, ai: loadAi, mail: loadMail })[p]?.();
+  if (p === 'net') loadHeadless();
 }
 
 // ---------- capture ----------
@@ -388,6 +389,37 @@ hz.ai.onEvent(ev => {
   if (ev.type === 'tool') aiMsg('tool', '▶ ' + ev.data.name + ' ' + JSON.stringify(ev.data.args));
   if (ev.type === 'tool_result') aiMsg('tool', '◀ ' + String(ev.data.result).slice(0, 500));
   if (ev.type === 'error') aiMsg('tool', '✖ ' + ev.data);
+});
+
+// ---------- headless / fast mode ----------
+async function loadHeadless() {
+  $('#fastOn').checked = await hz.hl.isfast();
+  renderHl();
+}
+$('#fastOn').onchange = async () => { await hz.hl.fast($('#fastOn').checked); };
+$('#hlOpen').onclick = async () => {
+  const t = await activeTab();
+  const url = t && t.url && /^https?:/.test(t.url) ? t.url : prompt('URL:', 'https://example.com');
+  if (!url) return;
+  await hz.hl.open({ url });
+  renderHl();
+};
+async function renderHl() {
+  const list = await hz.hl.list();
+  $('#hlList').innerHTML = list.map(p => `
+    <div class="ml-acc"><span class="mono" style="flex:1;overflow:hidden;text-overflow:ellipsis">⚡ ${esc(p.title || p.url)}</span>
+    <button data-hltext="${p.id}" title="extract text">TXT</button>
+    <button data-hlclose="${p.id}">✕</button></div>`).join('');
+}
+$('#hlList').addEventListener('click', async e => {
+  const c = e.target.closest('[data-hlclose]');
+  if (c) { await hz.hl.close(Number(c.dataset.hlclose)); renderHl(); return; }
+  const t = e.target.closest('[data-hltext]');
+  if (t) {
+    const txt = await hz.hl.text(Number(t.dataset.hltext));
+    $('#capDetail').classList.remove('hidden');
+    $('#capDump').textContent = txt.slice(0, 4000);
+  }
 });
 
 // ---------- TEMP MAIL ----------

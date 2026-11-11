@@ -19,6 +19,7 @@ const { I18n } = require('./i18n');
 const { McpServer } = require('./mcp');
 const { Stealth } = require('./stealth');
 const { TempMail } = require('./tempmail');
+const { Headless } = require('./headless');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -49,7 +50,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, headless, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -171,7 +172,7 @@ const history = {
 function registerIpc() {
   const ctx = {
     openTab: (u, a) => tabs.openTab(u, a !== false),
-    captures, sniffer, scripts, tempmail,
+    captures, sniffer, scripts, tempmail, headless,
     cookies: cookieApi,
     history: l => history.list(l),
     download: (url, name) => m3u8.download(url, name),
@@ -525,6 +526,15 @@ function registerIpc() {
   ipcMain.handle('mail:send', (e, ref, to, subject, text) => tempmail.send(ref, to, subject, text));
   ipcMain.handle('mail:wait', (e, ref, o) => tempmail.waitForMail(ref, o || {}));
   ipcMain.handle('mail:remove', (e, ref) => tempmail.remove(ref));
+
+  ipcMain.handle('hl:open', (e, o) => headless.open(o || {}).then(p => ({ id: p.id, url: p.url, title: p.title, error: p.error || null })));
+  ipcMain.handle('hl:list', () => headless.list());
+  ipcMain.handle('hl:close', (e, id) => headless.close(id));
+  ipcMain.handle('hl:nav', (e, id, url) => headless.nav(id, url));
+  ipcMain.handle('hl:eval', (e, id, code) => headless.evalJs(id, code));
+  ipcMain.handle('hl:text', (e, id) => headless.text(id));
+  ipcMain.handle('hl:fast', (e, on) => { const t = tabs.active; if (!t) return false; return headless.setFast(t.wc.session, !!on); });
+  ipcMain.handle('hl:isfast', () => { const t = tabs.active; return t ? headless.isFast(t.wc.session) : false; });
 }
 
 app.whenReady().then(async () => {
@@ -672,6 +682,11 @@ app.whenReady().then(async () => {
   // profile-bound sessions: rewrite UA + UA-CH + Accept-Language at wire level
   hub.on('reqHeaders', (d, ses) => stealth.headerRewrite(d, ses)); // baseline Chrome identity, in-place mutation
   hub.on('reqHeaders', (d, ses) => profiles.headerRewrite(d, ses));
+  headless = new Headless(store, {
+    hub,
+    onSession: (s) => { attachProto(s); if (hub) hub.attach(s); if (stealth) stealth.attachSession(s); }
+  });
+  if (mcp) mcp.ctx.headless = headless;
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);
   if (!process.env.HZ_NOHOOKS) {

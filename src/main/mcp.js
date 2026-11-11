@@ -107,7 +107,19 @@ const SCHEMAS = [
   { name: 'tempmail_read', desc: 'Read a message → subject/from/date/text/otp/links (otp+links auto-extracted)', inputSchema: { type: 'object', properties: { address: { type: 'string' }, messageId: { type: 'string' } }, required: ['address', 'messageId'] } },
   { name: 'tempmail_delete_message', desc: 'Delete a message from a mailbox', inputSchema: { type: 'object', properties: { address: { type: 'string' }, messageId: { type: 'string' } }, required: ['address', 'messageId'] } },
   { name: 'tempmail_extend', desc: 'Extend mailbox lifetime (emailnator only)', inputSchema: { type: 'object', properties: { address: { type: 'string' } }, required: ['address'] } },
-  { name: 'tempmail_wait', desc: 'Block until a matching mail lands → message + extracted otp + links. THE sign-up tool: submit form first, then call this. match = regex on subject+from', inputSchema: { type: 'object', properties: { address: { type: 'string' }, timeout: { type: 'number' }, match: { type: 'string' }, poll: { type: 'number' } }, required: ['address'] } }
+  { name: 'tempmail_wait', desc: 'Block until a matching mail lands → message + extracted otp + links. THE sign-up tool: submit form first, then call this. match = regex on subject+from', inputSchema: { type: 'object', properties: { address: { type: 'string' }, timeout: { type: 'number' }, match: { type: 'string' }, poll: { type: 'number' } }, required: ['address'] } },
+  { name: 'headless_open', desc: 'Open a page in the lean headless lane — offscreen, no paint/decode, images/fonts/media blocked. Far lighter+faster than a visible tab. Returns page id.', inputSchema: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+  { name: 'headless_list', desc: 'List headless pages (id/url/title)', inputSchema: { type: 'object', properties: {} } },
+  { name: 'headless_close', desc: 'Close a headless page ("all" for every one)', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+  { name: 'headless_nav', desc: 'Navigate a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, url: { type: 'string' } }, required: ['id', 'url'] } },
+  { name: 'headless_eval', desc: 'Run JavaScript in a headless page, return result', inputSchema: { type: 'object', properties: { id: { type: 'string' }, code: { type: 'string' } }, required: ['id', 'code'] } },
+  { name: 'headless_text', desc: 'Visible text of a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+  { name: 'headless_html', desc: 'HTML of a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+  { name: 'headless_query', desc: 'Query elements by CSS selector in a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, selector: { type: 'string' }, limit: { type: 'number' } }, required: ['id', 'selector'] } },
+  { name: 'headless_click', desc: 'Click element by selector in a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, selector: { type: 'string' } }, required: ['id', 'selector'] } },
+  { name: 'headless_fill', desc: 'Fill input by selector in a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, selector: { type: 'string' }, value: { type: 'string' } }, required: ['id', 'selector', 'value'] } },
+  { name: 'headless_shot', desc: 'Screenshot a headless page → PNG image', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+  { name: 'fast_mode', desc: 'Toggle fast mode on a VISIBLE tab — blocks images/fonts/media for speed+memory. Keep off for pages needing full render.', inputSchema: { type: 'object', properties: { on: { type: 'boolean' }, tabId: { type: 'number' } }, required: ['on'] } }
 ];
 
 class McpServer {
@@ -284,9 +296,27 @@ class McpServer {
       tempmail_read: async () => c.tempmail.readExtract(args.address, args.messageId),
       tempmail_delete_message: async () => c.tempmail.deleteMessage(args.address, args.messageId),
       tempmail_extend: async () => c.tempmail.extend(args.address),
-      tempmail_wait: async () => c.tempmail.waitForMail(args.address, { timeout: args.timeout, match: args.match, poll: args.poll })
+      tempmail_wait: async () => c.tempmail.waitForMail(args.address, { timeout: args.timeout, match: args.match, poll: args.poll }),
+      headless_open: async () => { const p = await c.headless.open(args); return { id: p.id, url: p.url, title: p.title }; },
+      headless_list: () => c.headless.list(),
+      headless_close: async () => ({ closed: await c.headless.close(args.id) }),
+      headless_nav: async () => c.headless.nav(args.id, args.url),
+      headless_eval: async () => c.headless.evalJs(args.id, args.code),
+      headless_text: async () => c.headless.text(args.id),
+      headless_html: async () => c.headless.html(args.id),
+      headless_query: async () => c.headless.query(args.id, args.selector, args.limit),
+      headless_click: async () => c.headless.click(args.id, args.selector),
+      headless_fill: async () => c.headless.fill(args.id, args.selector, args.value),
+      fast_mode: () => { const t = this.tab(args); const on = c.headless.setFast(t.wc.session, !!args.on); return { fast: on }; }
     };
     if (BROWSER[name]) return text(await BROWSER[name](args));
+    if (name === 'headless_shot') {
+      const png = await c.headless.shot(args.id);
+      return { content: [
+        { type: 'image', data: png.toString('base64'), mimeType: 'image/png' },
+        { type: 'text', text: 'headless screenshot' }
+      ] };
+    }
     const tab = this.tab(args);
     if (name === 'new_tab') {
       const t = c.tabs.openTab(args.url, args.active !== false, { incognito: !!args.incognito, profileId: args.profileId });

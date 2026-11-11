@@ -152,6 +152,16 @@ contextBridge.exposeInMainWorld('hz', {
     menu: id => send('bm:menu', id),
     onChange: fn => on('bm-changed', fn)
   },
+  hl: {
+    open: o => invoke('hl:open', o),
+    list: () => invoke('hl:list'),
+    close: id => invoke('hl:close', id),
+    nav: (id, url) => invoke('hl:nav', id, url),
+    eval: (id, code) => invoke('hl:eval', id, code),
+    text: id => invoke('hl:text', id),
+    fast: on => invoke('hl:fast', on),
+    isfast: () => invoke('hl:isfast')
+  },
   mail: {
     providers: () => invoke('mail:providers'),
     gen: o => invoke('mail:gen', o),

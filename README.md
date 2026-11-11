@@ -59,6 +59,7 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **MCP server** | Built-in **Model Context Protocol** endpoint — drive the whole browser from Claude Desktop / Codex / any MCP agent: tabs, navigation, DOM, cookies, capture+HAR, sniffing, environments, proxies, adblock, userscripts, AI | — |
 | **Human-verification readiness** | Always-on real-Chrome baseline (wire UA + UA-CH, chrome object, plugins↔mimeTypes, permissions↔Notification quirk, userAgentData, soft-GL mask) injected via CDP into **all frames incl. challenge iframes**, zero DOM trace; anti-bot selftest + Turnstile solver + trusted human-trajectory input | — |
 | **Temp mail** | Disposable inboxes for sign-up flows — **Emailnator (real @gmail.com pool, bypasses disposable-domain filters)**, mail.tm, TempMail+; OTP + confirm-link auto-extraction, wait-for-mail poller; panel UI + AI/MCP tools | — |
+| **Headless lane** | Lightpanda-style lean automation: offscreen `WebContents` pool (no paint/raster/decode, 1fps), images/fonts/media blocked at wire level; eval/text/query/click/fill/shot via MCP — plus `fast_mode` for visible tabs | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
 ## MCP — drive the browser from any agent
@@ -103,7 +104,7 @@ nothing is reachable off-machine.
   } } }
   ```
 
-**Tool surface (47 tools):** `list_tabs` / `new_tab` / `close_tab` /
+**Tool surface (59 tools):** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate` (omnibox-style URL + search normalization) /
 `get_url` / `page_text` / `page_html` / `dom_query` / `click` / `fill` /
 `run_js` / `wait` / `screenshot` (real PNG image block) /
@@ -115,7 +116,10 @@ nothing is reachable off-machine.
 `list_scripts` / `bookmarks` / `history` / `ai_chat` /
 `stealth_audit` / `human_click` / `human_type` / `solve_turnstile` /
 `tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
-`tempmail_delete_message` / `tempmail_extend` / `tempmail_wait`.
+`tempmail_delete_message` / `tempmail_extend` / `tempmail_wait` /
+`headless_open` / `headless_list` / `headless_close` / `headless_nav` /
+`headless_eval` / `headless_text` / `headless_html` / `headless_query` /
+`headless_click` / `headless_fill` / `headless_shot` / `fast_mode`.
 
 A typical agent session: `start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` gives you a full sniffed session; `dom_query` →
@@ -127,6 +131,10 @@ A typical **sign-up flow**: `tempmail_generate` (provider `emailnator` → real
 @gmail.com) → `fill` the registration form → `tempmail_wait` (blocks until the
 verification mail lands, returns extracted `otp` + confirm `links`) → `fill`/
 `navigate` the code or link — no human inbox needed.
+
+For pure extraction at scale, skip visible tabs entirely: `headless_open` →
+`headless_eval`/`headless_text`/`headless_query` → `headless_close` — pages run
+offscreen with images/fonts/media blocked, so bulk crawls stay light.
 
 ## Reverse-engineering pedigree
 

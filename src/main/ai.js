@@ -130,7 +130,11 @@ const TOOLS = [
   { name: 'tempmail_new', desc: 'Create a disposable mailbox → {address}. provider: emailnator (real @gmail, default) | mailtm | tempmailplus', params: { provider: 'string?', kind: 'string?', username: 'string?' } },
   { name: 'tempmail_inbox', desc: 'List messages of a temp mailbox (id/from/subject/date)', params: { address: 'string' } },
   { name: 'tempmail_read', desc: 'Read a temp-mail message → subject/from/text/links', params: { address: 'string', messageId: 'string' } },
-  { name: 'tempmail_otp', desc: 'Wait for a mail to arrive, then return extracted OTP code + confirm links. For sign-up flows: call AFTER submitting the form.', params: { address: 'string', timeout: 'number?', match: 'string?' } }
+  { name: 'tempmail_otp', desc: 'Wait for a mail to arrive, then return extracted OTP code + confirm links. For sign-up flows: call AFTER submitting the form.', params: { address: 'string', timeout: 'number?', match: 'string?' } },
+  { name: 'headless_open', desc: 'Open URL in lean headless lane (offscreen, images/fonts/media blocked — much lighter/faster than a tab). Use for pure extraction tasks.', params: { url: 'string' } },
+  { name: 'headless_eval', desc: 'Run JavaScript in headless page', params: { id: 'string', code: 'string' } },
+  { name: 'headless_text', desc: 'Visible text of headless page', params: { id: 'string' } },
+  { name: 'headless_close', desc: 'Close a headless page', params: { id: 'string' } }
 ];
 
 const AGENT_SYSTEM = `You are Haizhu Agent, an AI operator embedded in a developer browser.
@@ -218,6 +222,10 @@ class AIModule {
       case 'tempmail_inbox': return (await c.tempmail.inbox(args.address)).messages.slice(0, 50);
       case 'tempmail_read': return await c.tempmail.readExtract(args.address, args.messageId);
       case 'tempmail_otp': return await c.tempmail.waitForMail(args.address, { timeout: Math.min(args.timeout || 120000, 240000), match: args.match });
+      case 'headless_open': { const p = await c.headless.open({ url: args.url }); return { id: String(p.id), url: p.url, title: p.title }; }
+      case 'headless_eval': return await c.headless.evalJs(Number(args.id), args.code);
+      case 'headless_text': return await c.headless.text(Number(args.id));
+      case 'headless_close': return { closed: await c.headless.close(Number(args.id)) };
       default: return 'unknown tool ' + name;
     }
   }
