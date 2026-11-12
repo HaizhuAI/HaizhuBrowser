@@ -28,5 +28,9 @@ contextBridge.exposeInMainWorld('hzNav', {
     set: c => invoke('mcp:set', c),
     regen: () => invoke('mcp:regen'),
     config: () => invoke('mcp:config')
+  },
+  cdp: {
+    state: () => invoke('cdp:state'),
+    set: c => invoke('cdp:set', c)
   }
 });

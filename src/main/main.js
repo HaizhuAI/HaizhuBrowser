@@ -20,6 +20,7 @@ const { McpServer } = require('./mcp');
 const { Stealth } = require('./stealth');
 const { TempMail } = require('./tempmail');
 const { Headless } = require('./headless');
+const { CdpServer } = require('./cdp');
 
 app.setName('Haizhu Browser');
 // VM / software-GL environments: hardware acceleration crashes renderers
@@ -50,7 +51,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, headless, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, headless, cdp, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -515,6 +516,22 @@ function registerIpc() {
   ipcMain.handle('mcp:regen', () => mcp ? mcp.regenToken() : null);
   ipcMain.handle('mcp:config', () => mcp ? mcp.clientConfig(mcp.installBridge()) : null);
 
+  // CDP endpoint — Puppeteer/Playwright connectOverCDP drive real tabs (loopback only)
+  ipcMain.handle('cdp:state', () => ({
+    enabled: !!(store && store.get('cdp.enabled')),
+    running: !!(cdp && cdp.http),
+    port: cdp && cdp.port || (store && store.get('cdp.port')) || 9229,
+    targets: cdp ? cdp.targets().length : 0
+  }));
+  ipcMain.handle('cdp:set', (e, cfg) => {
+    if (!cdp) return null;
+    if (cfg.port && cfg.port !== cdp.port) store.set('cdp.port', cfg.port);
+    store.set('cdp.enabled', !!cfg.enabled);
+    if (cfg.enabled) cdp.start(Number(cfg.port || store.get('cdp.port') || 9229));
+    else cdp.stop();
+    return { running: !!(cdp && cdp.http), port: cdp ? cdp.port : 0 };
+  });
+
   ipcMain.handle('mail:providers', () => tempmail.providers());
   ipcMain.handle('mail:gen', (e, o) => tempmail.generate(o || {}));
   ipcMain.handle('mail:accounts', () => tempmail.accounts.map(a => ({ id: a.id, provider: a.provider, address: a.address, type: a.type, createdAt: a.createdAt })));
@@ -535,6 +552,10 @@ function registerIpc() {
   ipcMain.handle('hl:text', (e, id) => headless.text(id));
   ipcMain.handle('hl:fast', (e, on) => { const t = tabs.active; if (!t) return false; return headless.setFast(t.wc.session, !!on); });
   ipcMain.handle('hl:isfast', () => { const t = tabs.active; return t ? headless.isFast(t.wc.session) : false; });
+  ipcMain.handle('hl:markdown', (e, id) => headless.markdown(id));
+  ipcMain.handle('hl:bulk', (e, urls, o) => headless.bulkFetch(urls || [], o || {}));
+  ipcMain.handle('page:markdown', () => { const t = tabs.active; return t ? require('./markdown').toMarkdown(t.wc) : null; });
+  ipcMain.handle('page:pdf', async () => { const t = tabs.active; if (!t) return null; const b = await t.wc.printToPDF({ printBackground: true }); return b.toString('base64'); });
 }
 
 app.whenReady().then(async () => {
@@ -687,6 +708,8 @@ app.whenReady().then(async () => {
     onSession: (s) => { attachProto(s); if (hub) hub.attach(s); if (stealth) stealth.attachSession(s); }
   });
   if (mcp) mcp.ctx.headless = headless;
+  cdp = new CdpServer({ tabs, headless, store });
+  if (store.get('cdp.enabled', false)) cdp.start(Number(store.get('cdp.port') || 9229));
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);
   if (!process.env.HZ_NOHOOKS) {

@@ -24,9 +24,9 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 |---|---|
 | <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
-| Temp mail panel (OTP capture) |  |
+| Temp mail panel (OTP capture) | CDP / Puppeteer endpoint |
 |---|---|
-| <img src="docs/screenshots/tempmail-panel.png" width="640"> |  |
+| <img src="docs/screenshots/tempmail-panel.png" width="640"> | <img src="docs/screenshots/cdp-settings.png" width="640"> |
 
 | Android — main | Android — menu |
 |---|---|
@@ -59,7 +59,9 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **MCP server** | Built-in **Model Context Protocol** endpoint — drive the whole browser from Claude Desktop / Codex / any MCP agent: tabs, navigation, DOM, cookies, capture+HAR, sniffing, environments, proxies, adblock, userscripts, AI | — |
 | **Human-verification readiness** | Always-on real-Chrome baseline (wire UA + UA-CH, chrome object, plugins↔mimeTypes, permissions↔Notification quirk, userAgentData, soft-GL mask) injected via CDP into **all frames incl. challenge iframes**, zero DOM trace; anti-bot selftest + Turnstile solver + trusted human-trajectory input | — |
 | **Temp mail** | Disposable inboxes for sign-up flows — **Emailnator (real @gmail.com pool, bypasses disposable-domain filters)**, mail.tm, TempMail+; OTP + confirm-link auto-extraction, wait-for-mail poller; panel UI + AI/MCP tools | — |
-| **Headless lane** | Lightpanda-style lean automation: offscreen `WebContents` pool (no paint/raster/decode, 1fps), images/fonts/media blocked at wire level; eval/text/query/click/fill/shot via MCP — plus `fast_mode` for visible tabs | — |
+| **Headless lane** | Lightpanda-style lean automation: offscreen `WebContents` pool (no paint/raster/decode, 1fps), images/fonts/media + built-in tracker endpoints blocked at wire level, SSRF private-IP guard, parallel `bulk_fetch` — plus `fast_mode` for visible tabs | — |
+| **CDP / Puppeteer** | Chrome DevTools Protocol endpoint (default `ws://127.0.0.1:9229/devtools/browser`) — Puppeteer / Playwright `connectOverCDP` / raw CDP drive real tabs + headless lane, drop-in for headless-Chrome. `Runtime.enable` acknowledged-not-executed (stealth preserved); no `--remote-debugging-port` | — |
+| **Markdown / PDF** | `page_markdown` (obscura getMarkdown equivalent: article root → GitHub-flavored markdown) + `page_pdf`/`headless_pdf` (`printToPDF` → base64) on both visible and headless lanes | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
 ## MCP — drive the browser from any agent
@@ -104,9 +106,10 @@ nothing is reachable off-machine.
   } } }
   ```
 
-**Tool surface (59 tools):** `list_tabs` / `new_tab` / `close_tab` /
+**Tool surface (64 tools):** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate` (omnibox-style URL + search normalization) /
-`get_url` / `page_text` / `page_html` / `dom_query` / `click` / `fill` /
+`get_url` / `page_text` / `page_html` / `page_markdown` / `page_pdf` /
+`dom_query` / `click` / `fill` /
 `run_js` / `wait` / `screenshot` (real PNG image block) /
 `start_capture` / `stop_capture` / `network_log` / `request_body` /
 `har_export` / `resources` / `download_resource` /
@@ -118,8 +121,38 @@ nothing is reachable off-machine.
 `tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
 `tempmail_delete_message` / `tempmail_extend` / `tempmail_wait` /
 `headless_open` / `headless_list` / `headless_close` / `headless_nav` /
-`headless_eval` / `headless_text` / `headless_html` / `headless_query` /
-`headless_click` / `headless_fill` / `headless_shot` / `fast_mode`.
+`headless_eval` / `headless_text` / `headless_html` / `headless_markdown` /
+`headless_pdf` / `headless_query` /
+`headless_click` / `headless_fill` / `headless_shot` / `fast_mode` / `bulk_fetch`.
+
+## CDP — Puppeteer / Playwright drop-in
+
+The **CDP / Puppeteer** section in `haizhu://settings` spins up an in-process
+Chrome DevTools Protocol server (`127.0.0.1:<port>`, default 9229). Unlike
+`--remote-debugging-port` it sets no detectable internal flag, and
+`Runtime.enable` is acknowledged but never executed — the stealth surface stays
+intact while real `Runtime.evaluate`/`callFunctionOn` still work.
+
+```js
+import puppeteer from 'puppeteer-core';
+const browser = await puppeteer.connect({
+  browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser'
+});
+const page = await browser.newPage();            // opens a REAL tab (or /json/new)
+await page.goto('https://example.com');
+await page.evaluate(() => document.title);
+await page.screenshot({ path: 'shot.png' });
+await page.pdf({ path: 'page.pdf' });
+await browser.disconnect();                      // browser keeps running
+```
+
+Discovery endpoints also live on the same port: `GET /json/version`,
+`/json/list`, `/json/new?url=…`, `/json/close/<id>`, and per-target
+`ws://…/devtools/page/<targetId>` sockets. `Target.createTarget`,
+`attachToTarget` (flat sessions), `Page`/`Runtime`/`Network`/`Emulation`/`Input`/
+`DOM`/`Fetch`/`Storage` domains are supported — `page.click()/type()/evaluate()/
+goto()/screenshot()/pdf()/content()` all work against real visible tabs.
+Playwright: `chromium.connectOverCDP('http://127.0.0.1:9229')`.
 
 A typical agent session: `start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` gives you a full sniffed session; `dom_query` →
@@ -133,8 +166,12 @@ verification mail lands, returns extracted `otp` + confirm `links`) → `fill`/
 `navigate` the code or link — no human inbox needed.
 
 For pure extraction at scale, skip visible tabs entirely: `headless_open` →
-`headless_eval`/`headless_text`/`headless_query` → `headless_close` — pages run
-offscreen with images/fonts/media blocked, so bulk crawls stay light.
+`headless_eval`/`headless_text`/`headless_markdown` → `headless_close` — pages
+run offscreen with images/fonts/media and ~60 tracker endpoints blocked, SSRF
+private-IP guard on by default, and `bulk_fetch(urls, {concurrency})` fans a
+URL list out in parallel (obscura `scrape` equivalent). `page_markdown` turns
+any page into clean LLM-consumable markdown; `page_pdf`/`headless_pdf` export
+`printToPDF` output.
 
 ## Reverse-engineering pedigree
 

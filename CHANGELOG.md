@@ -2,6 +2,25 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.10.0] — 2025-11-11
+
+### Added / 新增 — Obscura 精华移植（h4ckf0r0day/obscura 调研后选择性吸收）
+
+对标 h4ckf0r0day/obscura（Rust 无头浏览器，30k★）的五项能力在 Electron/真 Chromium 上的落地：
+
+- **CDP 端点（`src/main/cdp.js`）**——进程内 HTTP+WebSocket 服务器（默认 `127.0.0.1:9229`），实现 Chrome DevTools Protocol 子集：`/json/version`、`/json/list`、`/json/new`、`/json/close|activate/<id>`、`ws://…/devtools/browser`、`ws://…/devtools/page/<id>`；`Target.*`（createTarget/closeTarget/attachToTarget flatten/getTargets/discover/autoAttach/createBrowserContext）、`Page.*`（navigate/getFrameTree/captureScreenshot/printToPDF/addScriptToEvaluateOnNewDocument/setLifecycleEventsEnabled/bringToFront/close）、`Runtime.*`（evaluate/callFunctionOn/awaitPromise/getProperties/releaseObject；**`Runtime.enable` 仅确认不转发**，合成 `executionContextCreated` 让 Puppeteer 拿到合法 context 而不引入可探测泄漏面）、`Network.*`、`Emulation.*`、`Input.*`、`DOM.*`、`Fetch.*`、`Storage.*` 一律透传 `webContents.debugger`。零依赖 RFC6455 文本帧实现。**Puppeteer/Playwright connectOverCDP drop-in**：`puppeteer.connect({browserWSEndpoint:'ws://127.0.0.1:9229/devtools/browser'})` 驱动真实标签与无头泳道——不开 `--remote-debugging-port`（其内部标记可探测）
+- **Markdown 抽取（`src/main/markdown.js`）**——obscura `LP.getMarkdown` 等价物：article/main/role=main 定位正文根，单次 DOM 遍历产 GitHub-flavored markdown（标题层级/[链接](url)/列表/表格/代码块/引用/dl/hr），剥离 nav/footer/sidebar/cookie 横幅等噪声容器——LLM 读的页面形态
+- **page_pdf / headless_pdf**——`printToPDF` 封装（A4/横向/背景选项），返回 base64
+- **bulk_fetch**——obscura `scrape` 命令等价物：URL 列表并发（默认 4 并发）在无头泳道逐个开页抓取，返回 `[{url,title,markdown|text,ms|error}]`
+- **Tracker blocklist**——obscura `--stealth` 内置 3520 域拦截的精简版：~60 个高价值分析/遥测/指纹端点域名正则，**无头泳道默认开启**（少下载=更快+少指纹暴露面），可视标签不受影响
+- **SSRF 守卫**——obscura 默认拦私网地址的思路：`headless_open`/`headless_nav`/`bulk_fetch` 默认拒绝 localhost/10.x/172.16-31/192.168/169.254/127.x 目标，`allowPrivate:true` 可覆盖
+- **设置页新「CDP / Puppeteer」区块**——开关+端口+运行状态+接入示例，四语言；MCP +5 工具（共 64）：`page_markdown/page_pdf/headless_markdown/headless_pdf/bulk_fetch`；内置 AI Agent +4：`page_markdown/page_pdf/headless_markdown/bulk_fetch`
+
+### 未移植（诚实边界）
+- obscura 的自研 Rust+V8 引擎本身（我们卖点是真 Chromium 兼容+反检测指纹面）
+- `IO.read` 大流分块（`Fetch.takeResponseBodyAsStream` 透传可用，未做缓存层）
+- 其 README 宣称的 30MB/85ms 指标是自研引擎账，不适用于 Chromium 基线
+
 ## [1.9.1] — 2025-11-11
 
 ### Added / 新增 — 无头泳道（AI 自动化轻量通道，`src/main/headless.js`）

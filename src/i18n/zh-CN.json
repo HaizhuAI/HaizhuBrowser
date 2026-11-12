@@ -146,5 +146,12 @@
   "mail.empty": "还没有邮箱。点生成——Emailnator 给真 @gmail.com 地址。",
   "mail.nomail": "暂无邮件",
   "hl.fast": "极速模式（拦截图片/字体/媒体）",
-  "hl.open": "⬇ 无头打开网址"
+  "hl.open": "⬇ 无头打开网址",
+  "set.cdp": "CDP / Puppeteer",
+  "set.cdp.enable": "启用 CDP 端点",
+  "set.cdp.desc": "暴露 Chrome DevTools 协议端点，让 Puppeteer / Playwright（connectOverCDP）/ 原生 CDP 客户端直接驱动真实标签页与无头泳道——无缝替代 headless Chrome 工作流。",
+  "set.cdp.port": "端口",
+  "set.cdp.endpoint": "端点",
+  "set.cdp.note": "仅绑定 127.0.0.1。经 ws://127.0.0.1:<端口>/devtools/browser 或 http://127.0.0.1:<端口>/json 接入——Runtime.enable 仅确认不执行（隐身面保持）。",
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
 }

@@ -119,7 +119,12 @@ const SCHEMAS = [
   { name: 'headless_click', desc: 'Click element by selector in a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, selector: { type: 'string' } }, required: ['id', 'selector'] } },
   { name: 'headless_fill', desc: 'Fill input by selector in a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' }, selector: { type: 'string' }, value: { type: 'string' } }, required: ['id', 'selector', 'value'] } },
   { name: 'headless_shot', desc: 'Screenshot a headless page → PNG image', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
-  { name: 'fast_mode', desc: 'Toggle fast mode on a VISIBLE tab — blocks images/fonts/media for speed+memory. Keep off for pages needing full render.', inputSchema: { type: 'object', properties: { on: { type: 'boolean' }, tabId: { type: 'number' } }, required: ['on'] } }
+  { name: 'fast_mode', desc: 'Toggle fast mode on a VISIBLE tab — blocks images/fonts/media for speed+memory. Keep off for pages needing full render.', inputSchema: { type: 'object', properties: { on: { type: 'boolean' }, tabId: { type: 'number' } }, required: ['on'] } },
+  { name: 'page_markdown', desc: 'Extract the page as clean LLM-friendly markdown (obscura getMarkdown equivalent): article/main root, headings/links/lists/code/tables. tabId optional.', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } } } },
+  { name: 'page_pdf', desc: 'Export page to PDF (printToPDF). Returns base64.', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, printBackground: { type: 'boolean' }, landscape: { type: 'boolean' }, pageSize: { type: 'string' } } } },
+  { name: 'headless_markdown', desc: 'Extract markdown from a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+  { name: 'headless_pdf', desc: 'Export a headless page to PDF → base64', inputSchema: { type: 'object', properties: { id: { type: 'string' }, printBackground: { type: 'boolean' } }, required: ['id'] } },
+  { name: 'bulk_fetch', desc: 'obscura `scrape` equivalent — fetch many URLs in parallel on the lean headless lane; returns [{url,title,markdown|text,ms|error}]. Private IPs blocked unless allowPrivate.', inputSchema: { type: 'object', properties: { urls: { type: 'array', items: { type: 'string' } }, concurrency: { type: 'number' }, timeout: { type: 'number' }, format: { type: 'string', enum: ['markdown', 'text'] }, allowPrivate: { type: 'boolean' } }, required: ['urls'] } }
 ];
 
 class McpServer {
@@ -307,7 +312,9 @@ class McpServer {
       headless_query: async () => c.headless.query(args.id, args.selector, args.limit),
       headless_click: async () => c.headless.click(args.id, args.selector),
       headless_fill: async () => c.headless.fill(args.id, args.selector, args.value),
-      fast_mode: () => { const t = this.tab(args); const on = c.headless.setFast(t.wc.session, !!args.on); return { fast: on }; }
+      fast_mode: () => { const t = this.tab(args); const on = c.headless.setFast(t.wc.session, !!args.on); return { fast: on }; },
+      headless_markdown: async () => c.headless.markdown(args.id),
+      bulk_fetch: async () => c.headless.bulkFetch(args.urls, { concurrency: args.concurrency, timeout: args.timeout, format: args.format || 'markdown', allowPrivate: !!args.allowPrivate })
     };
     if (BROWSER[name]) return text(await BROWSER[name](args));
     if (name === 'headless_shot') {
@@ -316,6 +323,10 @@ class McpServer {
         { type: 'image', data: png.toString('base64'), mimeType: 'image/png' },
         { type: 'text', text: 'headless screenshot' }
       ] };
+    }
+    if (name === 'headless_pdf') {
+      const pdf = await c.headless.pdf(args.id, args);
+      return text({ bytes: pdf.length, base64: pdf.toString('base64') });
     }
     const tab = this.tab(args);
     if (name === 'new_tab') {
@@ -327,6 +338,18 @@ class McpServer {
       const u = c.tabs.normalizeUrl(args.url);
       t.wc.loadURL(u);
       return text('navigated ' + u);
+    }
+    if (name === 'page_markdown') {
+      const { toMarkdown } = require('./markdown');
+      return text(await toMarkdown(tab.wc));
+    }
+    if (name === 'page_pdf') {
+      const buf = await tab.wc.printToPDF({
+        printBackground: args.printBackground !== false,
+        landscape: !!args.landscape,
+        pageSize: args.pageSize || 'A4'
+      });
+      return text({ bytes: buf.length, base64: buf.toString('base64') });
     }
     if (name === 'stealth_audit') return text(await c.stealth.audit(tab));
     if (name === 'human_click') return text(await c.stealth.humanClick(tab.wc, args.x, args.y));

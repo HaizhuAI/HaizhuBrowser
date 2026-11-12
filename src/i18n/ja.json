@@ -146,5 +146,12 @@
   "mail.empty": "メールボックスがありません。生成すると本物の @gmail.com が使えます。",
   "mail.nomail": "メッセージなし",
   "hl.fast": "高速モード（画像/フォント/メディアをブロック）",
-  "hl.open": "⬇ ヘッドレスで開く"
+  "hl.open": "⬇ ヘッドレスで開く",
+  "set.cdp": "CDP / Puppeteer",
+  "set.cdp.enable": "CDP エンドポイントを有効化",
+  "set.cdp.desc": "Chrome DevTools Protocol エンドポイントを公開し、Puppeteer / Playwright（connectOverCDP）/ CDP クライアントが実タブとヘッドレスレーンを直接駆動——headless Chrome ワークフローのドロップイン代替。",
+  "set.cdp.port": "ポート",
+  "set.cdp.endpoint": "エンドポイント",
+  "set.cdp.note": "127.0.0.1 のみにバインド。ws://127.0.0.1:<port>/devtools/browser または http://127.0.0.1:<port>/json で接続——Runtime.enable は確認のみで実行しません（ステルス維持）。",
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
 }

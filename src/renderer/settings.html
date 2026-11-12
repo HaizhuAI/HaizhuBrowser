@@ -99,6 +99,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h7v4M14 17.5H7v-4"/></svg>
       <span data-i18n="set.mcp">MCP / Agents</span>
     </div>
+    <div class="sitem" data-s="cdp">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5M12 19h8"/></svg>
+      <span data-i18n="set.cdp">CDP</span>
+    </div>
     <div class="sitem" data-s="about">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></svg>
       <span data-i18n="set.about">About</span>
@@ -205,6 +209,27 @@
         <div class="lab" data-i18n="set.mcp.cfghttp">HTTP — streamable-HTTP-capable clients</div>
         <textarea id="taCfgHttp" readonly rows="8" style="width:100%;font:11px var(--mono,monospace);background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
         <button id="btnCfgHttp" data-i18n="set.mcp.copy" style="margin-top:8px">Copy</button>
+      </div>
+    </section>
+
+    <section class="sect" id="s-cdp">
+      <h2 data-i18n="set.cdp">CDP / Puppeteer</h2>
+      <div class="card">
+        <div class="swrow">
+          <div>
+            <div class="lab" data-i18n="set.cdp.enable">Enable CDP endpoint</div>
+            <div class="desc" data-i18n="set.cdp.desc">Expose a Chrome DevTools Protocol endpoint so Puppeteer / Playwright (connectOverCDP) / raw CDP clients drive real tabs and the headless lane — drop-in for headless-Chrome workflows.</div>
+          </div>
+          <label class="sw"><input type="checkbox" id="swCdp"><span class="tr"></span></label>
+        </div>
+        <div class="kv2" style="margin-top:12px">
+          <div data-i18n="set.cdp.port">Port</div>
+          <div><input class="full" id="inCdpPort" type="number" min="1" max="65535" style="max-width:120px"></div>
+          <div data-i18n="set.cdp.endpoint">Endpoint</div>
+          <div><code id="cdpUrl" style="font-size:12px"></code> <span id="cdpState" style="font-size:12px;color:var(--fg2)"></span></div>
+        </div>
+        <div class="desc" style="margin-top:8px" data-i18n="set.cdp.note">Bound to 127.0.0.1. Attach via ws://127.0.0.1:&lt;port&gt;/devtools/browser or http://127.0.0.1:&lt;port&gt;/json — Runtime.enable is acknowledged but never executed (stealth preserved).</div>
+        <div class="desc" style="margin-top:6px" data-i18n="set.cdp.example">puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })</div>
       </div>
     </section>
 

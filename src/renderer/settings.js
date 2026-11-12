@@ -93,6 +93,19 @@ async function boot() {
   copyBtn('#btnCfgStdio', '#taCfgStdio');
   copyBtn('#btnCfgHttp', '#taCfgHttp');
 
+  // cdp — puppeteer/playwright endpoint
+  async function cdpRefresh() {
+    const s = await hzNav.cdp.state();
+    $('#swCdp').checked = !!s.enabled;
+    $('#inCdpPort').value = s.port || 9229;
+    $('#cdpUrl').textContent = 'ws://127.0.0.1:' + (s.port || 9229) + '/devtools/browser';
+    $('#cdpState').textContent = s.running ? '● ' + tr('set.mcp.on') + ' (' + (s.targets || 0) + ')' : '○ ' + tr('set.mcp.off');
+    $('#cdpState').style.color = s.running ? '#3fb950' : 'var(--fg2)';
+  }
+  await cdpRefresh();
+  $('#swCdp').onchange = e => hzNav.cdp.set({ enabled: e.target.checked, port: parseInt($('#inCdpPort').value, 10) || 9229 }).then(cdpRefresh);
+  $('#inCdpPort').onchange = e => hzNav.cdp.set({ enabled: $('#swCdp').checked, port: parseInt(e.target.value, 10) || 9229 }).then(cdpRefresh);
+
   // about
   $('#aboutVer').textContent = tr('set.version') + ' ' + (await hzNav.version());
 }

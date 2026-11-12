@@ -160,7 +160,17 @@ contextBridge.exposeInMainWorld('hz', {
     eval: (id, code) => invoke('hl:eval', id, code),
     text: id => invoke('hl:text', id),
     fast: on => invoke('hl:fast', on),
-    isfast: () => invoke('hl:isfast')
+    isfast: () => invoke('hl:isfast'),
+    markdown: id => invoke('hl:markdown', id),
+    bulk: (urls, o) => invoke('hl:bulk', urls, o)
+  },
+  cdp: {
+    state: () => invoke('cdp:state'),
+    set: c => invoke('cdp:set', c)
+  },
+  page: {
+    markdown: () => invoke('page:markdown'),
+    pdf: () => invoke('page:pdf')
   },
   mail: {
     providers: () => invoke('mail:providers'),

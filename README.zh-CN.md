@@ -24,9 +24,9 @@
 |---|---|
 | <img src="docs/screenshots/stealth-nowsecure.jpg" width="640"> | <img src="docs/screenshots/cf-challenge.png" width="640"> |
 
-| 临时邮箱面板（OTP 抽取） |  |
+| 临时邮箱面板（OTP 抽取） | CDP / Puppeteer 端点 |
 |---|---|
-| <img src="docs/screenshots/tempmail-panel.png" width="640"> |  |
+| <img src="docs/screenshots/tempmail-panel.png" width="640"> | <img src="docs/screenshots/cdp-settings.png" width="640"> |
 
 | 安卓 — 主界面 | 安卓 — 菜单 |
 |---|---|
@@ -59,7 +59,9 @@
 | **MCP 服务** | 内嵌 **Model Context Protocol** 端点——Claude Desktop / Codex / 任意 MCP 智能体可直接驱动整台浏览器：标签、导航、DOM、Cookie、抓包+HAR、资源嗅探、指纹环境、代理、广告拦截、油猴、AI | — |
 | **人机验证应对** | 常开真 Chrome 基线（线级 UA + UA-CH、chrome 对象、插件↔mimeType、权限↔Notification 怪癖、userAgentData、软渲 WebGL 遮罩），CDP 全 frame 注入含跨域挑战 iframe、零 DOM 痕迹；反爬自检 + Turnstile 求解器 + trusted 真人轨迹输入 | — |
 | **临时邮箱** | 注册登录用一次性收件箱——**Emailnator（真 @gmail.com 池，绕过一次性域名过滤）**、mail.tm、TempMail+；自动抽取验证码 + 确认链接，等信轮询原语；面板 UI + AI/MCP 工具 | — |
-| **无头泳道** | lightpanda 式轻量自动化：offscreen `WebContents` 池（零绘制/光栅/解码，1fps），线级拦截图片/字体/媒体；MCP 全套 eval/text/query/click/fill/shot + 可视标签 `fast_mode` | — |
+| **无头泳道** | lightpanda 式轻量自动化：offscreen `WebContents` 池（零绘制/光栅/解码，1fps），线级拦截图片/字体/媒体 + 内建 ~60 追踪端点，SSRF 私网守卫，并行 `bulk_fetch` 批量抓取 + 可视标签 `fast_mode` | — |
+| **CDP / Puppeteer** | Chrome DevTools 协议端点（默认 `ws://127.0.0.1:9229/devtools/browser`）——Puppeteer / Playwright `connectOverCDP` / 原生 CDP 客户端直接驱动真实标签与无头泳道，无缝替代 headless Chrome。`Runtime.enable` 仅确认不执行（隐身面保持）；不开 `--remote-debugging-port` | — |
+| **Markdown / PDF** | `page_markdown`（obscura getMarkdown 等价物：正文根→GitHub 风格 markdown，LLM 直接读）+ `page_pdf`/`headless_pdf`（`printToPDF` → base64），可视/无头双泳道可用 | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
 
 ## MCP —— 让任意智能体驱动浏览器
@@ -101,9 +103,10 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
   } } }
   ```
 
-**工具面（59 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
+**工具面（64 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate`（地址栏式 URL+搜索词归一化）/ `get_url` /
-`page_text` / `page_html` / `dom_query` / `click` / `fill` / `run_js` /
+`page_text` / `page_html` / `page_markdown` / `page_pdf` /
+`dom_query` / `click` / `fill` / `run_js` /
 `wait` / `screenshot`（真 PNG 图像块）/ `start_capture` / `stop_capture` /
 `network_log` / `request_body` / `har_export` / `resources` /
 `download_resource` / `list_cookies` / `set_cookie` / `delete_cookie` /
@@ -114,8 +117,36 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
 `tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
 `tempmail_delete_message` / `tempmail_extend` / `tempmail_wait` /
 `headless_open` / `headless_list` / `headless_close` / `headless_nav` /
-`headless_eval` / `headless_text` / `headless_html` / `headless_query` /
-`headless_click` / `headless_fill` / `headless_shot` / `fast_mode`。
+`headless_eval` / `headless_text` / `headless_html` / `headless_markdown` /
+`headless_pdf` / `headless_query` /
+`headless_click` / `headless_fill` / `headless_shot` / `fast_mode` / `bulk_fetch`。
+
+## CDP —— Puppeteer / Playwright 无缝接入
+
+`haizhu://settings` 的 **CDP / Puppeteer** 区块拉起进程内 Chrome DevTools
+协议服务（`127.0.0.1:<端口>`，默认 9229）。与 `--remote-debugging-port`
+不同，它不设可探测的内部标记；`Runtime.enable` 仅确认不执行——隐身面完整，
+而真实的 `Runtime.evaluate`/`callFunctionOn` 照常工作。
+
+```js
+import puppeteer from 'puppeteer-core';
+const browser = await puppeteer.connect({
+  browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser'
+});
+const page = await browser.newPage();            // 开一个真实标签（或 /json/new）
+await page.goto('https://example.com');
+await page.evaluate(() => document.title);
+await page.screenshot({ path: 'shot.png' });
+await page.pdf({ path: 'page.pdf' });
+await browser.disconnect();                      // 浏览器继续运行
+```
+
+同端口还有发现端点：`GET /json/version`、`/json/list`、`/json/new?url=…`、
+`/json/close/<id>`，以及逐目标的 `ws://…/devtools/page/<targetId>`。
+`Target.createTarget`、`attachToTarget`（flat 会话）、`Page`/`Runtime`/
+`Network`/`Emulation`/`Input`/`DOM`/`Fetch`/`Storage` 各域可用——
+`click()/type()/evaluate()/goto()/screenshot()/pdf()/content()` 全部落在
+真实可视标签上。Playwright：`chromium.connectOverCDP('http://127.0.0.1:9229')`。
 
 典型智能体会话：`start_capture` → `navigate` → `network_log` →
 `request_body` → `har_export` 完成一次完整抓包；`dom_query` → `click` →
@@ -127,7 +158,10 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
 确认 `links`）→ 回填验证码或直接 `navigate` 打开确认链接——全程不需要真人邮箱。
 
 纯提取批量任务可以不开可视标签：`headless_open` → `headless_eval`/`headless_text`/
-`headless_query` → `headless_close`——页面零渲染运行，图片/字体/媒体在线级拦截，批量爬取保持轻量。
+`headless_markdown` → `headless_close`——页面零渲染运行，图片/字体/媒体与 ~60 个
+追踪端点在线级拦截，SSRF 私网默认拦截；`bulk_fetch(urls, {concurrency})` 把 URL
+列表并发铺开抓取（obscura `scrape` 等价）。`page_markdown` 把任意页面变成 LLM
+可读的干净 markdown；`page_pdf`/`headless_pdf` 直接出 `printToPDF`。
 
 ## 逆向渊源
 

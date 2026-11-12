@@ -134,7 +134,11 @@ const TOOLS = [
   { name: 'headless_open', desc: 'Open URL in lean headless lane (offscreen, images/fonts/media blocked — much lighter/faster than a tab). Use for pure extraction tasks.', params: { url: 'string' } },
   { name: 'headless_eval', desc: 'Run JavaScript in headless page', params: { id: 'string', code: 'string' } },
   { name: 'headless_text', desc: 'Visible text of headless page', params: { id: 'string' } },
-  { name: 'headless_close', desc: 'Close a headless page', params: { id: 'string' } }
+  { name: 'headless_close', desc: 'Close a headless page', params: { id: 'string' } },
+  { name: 'page_markdown', desc: 'Extract page as clean markdown (headings/links/lists/code) — best for LLM reading', params: {} },
+  { name: 'page_pdf', desc: 'Export page as PDF → base64', params: {} },
+  { name: 'headless_markdown', desc: 'Markdown extraction on a headless page', params: { id: 'string' } },
+  { name: 'bulk_fetch', desc: 'Fetch many URLs in parallel on the headless lane → [{url,title,markdown}] (obscura scrape)', params: { urls: 'array', concurrency: 'number?' } }
 ];
 
 const AGENT_SYSTEM = `You are Haizhu Agent, an AI operator embedded in a developer browser.
@@ -226,6 +230,10 @@ class AIModule {
       case 'headless_eval': return await c.headless.evalJs(Number(args.id), args.code);
       case 'headless_text': return await c.headless.text(Number(args.id));
       case 'headless_close': return { closed: await c.headless.close(Number(args.id)) };
+      case 'page_markdown': { const { toMarkdown } = require('./markdown'); return await toMarkdown(wc); }
+      case 'page_pdf': { const b = await wc.printToPDF({ printBackground: true }); return { bytes: b.length, base64: b.toString('base64') }; }
+      case 'headless_markdown': return await c.headless.markdown(Number(args.id));
+      case 'bulk_fetch': return await c.headless.bulkFetch(args.urls || [], { concurrency: args.concurrency || 4 });
       default: return 'unknown tool ' + name;
     }
   }

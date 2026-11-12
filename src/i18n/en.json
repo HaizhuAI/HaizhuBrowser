@@ -146,5 +146,12 @@
   "mail.empty": "No mailbox yet. Generate one — Emailnator gives a real @gmail.com.",
   "mail.nomail": "No messages",
   "hl.fast": "Fast mode (block images/fonts/media)",
-  "hl.open": "⬇ Headless open URL"
+  "hl.open": "⬇ Headless open URL",
+  "set.cdp": "CDP / Puppeteer",
+  "set.cdp.enable": "Enable CDP endpoint",
+  "set.cdp.desc": "Expose a Chrome DevTools Protocol endpoint so Puppeteer / Playwright (connectOverCDP) / raw CDP clients drive real tabs and the headless lane — drop-in for headless-Chrome workflows.",
+  "set.cdp.port": "Port",
+  "set.cdp.endpoint": "Endpoint",
+  "set.cdp.note": "Bound to 127.0.0.1. Attach via ws://127.0.0.1:<port>/devtools/browser or http://127.0.0.1:<port>/json — Runtime.enable is acknowledged but never executed (stealth preserved).",
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
 }
