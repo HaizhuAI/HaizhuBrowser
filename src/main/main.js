@@ -10,6 +10,7 @@ const { ProfileManager } = require('./profiles');
 const { UserscriptEngine } = require('./userscripts');
 const { CaptureManager, ResourceSniffer, M3U8Downloader } = require('./capture');
 const { ProxyManager } = require('./proxy');
+const { WebProxy } = require('./webproxy');
 const { WebRequestHub } = require('./webhub');
 const { AdBlock } = require('./adblock');
 const { ExtensionManager } = require('./extensions');
@@ -51,7 +52,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 let win, chromeView, panelView;
-let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, headless, cdp, attachProto = () => {};
+let store, fingerprint, scripts, captures, sniffer, m3u8, proxy, adblock, extMgr, ai, tabs, hub, mcp, stealth, tempmail, headless, cdp, webproxy, attachProto = () => {};
 let profiles;
 let historyStore, i18n;
 let panelOpen = false;
@@ -173,7 +174,7 @@ const history = {
 function registerIpc() {
   const ctx = {
     openTab: (u, a) => tabs.openTab(u, a !== false),
-    captures, sniffer, scripts, tempmail, headless,
+    captures, sniffer, scripts, tempmail, headless, webproxy,
     cookies: cookieApi,
     history: l => history.list(l),
     download: (url, name) => m3u8.download(url, name),
@@ -556,6 +557,16 @@ function registerIpc() {
   ipcMain.handle('hl:bulk', (e, urls, o) => headless.bulkFetch(urls || [], o || {}));
   ipcMain.handle('page:markdown', () => { const t = tabs.active; return t ? require('./markdown').toMarkdown(t.wc) : null; });
   ipcMain.handle('page:pdf', async () => { const t = tabs.active; if (!t) return null; const b = await t.wc.printToPDF({ printBackground: true }); return b.toString('base64'); });
+
+  // Shifter residential web-proxy lane (ported scramjet runtime controller)
+  ipcMain.handle('wp:countries', () => webproxy.countries());
+  ipcMain.handle('wp:open', (e, o) => webproxy.open(o || {}));
+  ipcMain.handle('wp:nav', (e, id, url) => webproxy.nav(id, url));
+  ipcMain.handle('wp:cmd', (e, id, c, a) => webproxy.cmd(id, c, a));
+  ipcMain.handle('wp:country', (e, id, code) => webproxy.setCountry(id, code));
+  ipcMain.handle('wp:state', (e, id) => webproxy.state(id));
+  ipcMain.handle('wp:stop', (e, id) => webproxy.stop(id));
+  ipcMain.handle('wp:list', () => webproxy.list());
 }
 
 app.whenReady().then(async () => {
@@ -710,6 +721,8 @@ app.whenReady().then(async () => {
   if (mcp) mcp.ctx.headless = headless;
   cdp = new CdpServer({ tabs, headless, store });
   if (store.get('cdp.enabled', false)) cdp.start(Number(store.get('cdp.port') || 9229));
+  webproxy = new WebProxy({ tabs, broadcast });
+  if (mcp) mcp.ctx.webproxy = webproxy;
   if (!process.env.HZ_BARE) attachSessionHooks(ses);
   if (!process.env.HZ_BARE) await proxy.apply(ses);
   if (!process.env.HZ_NOHOOKS) {
@@ -780,13 +793,26 @@ app.whenReady().then(async () => {
     ipcMain.handle('dev:shot', async (e, name) => {
       const dir = process.env.HZ_SHOT || path.join(app.getPath('temp'), 'hzshot');
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, String(name) + '.png'), (await chromeView.webContents.capturePage()).toPNG());
-      if (panelView) fs.writeFileSync(path.join(dir, String(name) + '-panel.png'), (await panelView.webContents.capturePage()).toPNG());
+      const out = {};
+      try { fs.writeFileSync(path.join(dir, String(name) + '.png'), (await chromeView.webContents.capturePage()).toPNG()); out.chrome = true; } catch (er) { out.chrome = er.message; }
+      if (panelView) { try { fs.writeFileSync(path.join(dir, String(name) + '-panel.png'), (await panelView.webContents.capturePage()).toPNG()); out.panel = true; } catch (er) { out.panel = er.message; } }
       const t = tabs && tabs.active;
-      if (t) fs.writeFileSync(path.join(dir, String(name) + '-tab.png'), (await t.wc.capturePage()).toPNG());
-      return true;
+      if (t) {
+        try {
+          t.wc.setBackgroundThrottling(false);
+          fs.writeFileSync(path.join(dir, String(name) + '-tab.png'), (await t.wc.capturePage()).toPNG());
+          out.tab = true;
+        } catch (er) { out.tab = er.message; }
+      }
+      return out;
     });
     ipcMain.handle('dev:resize', (e, w, h) => { win.setSize(w, h); return win.getSize(); });
+    ipcMain.handle('dev:tclick', async (e, x, y) => {
+      const t = tabs && tabs.active;
+      if (!t || !stealth) return { ok: false };
+      try { win.show(); win.focus(); } catch (er) {}
+      return stealth.humanClick(t.wc, x, y);
+    });
     ipcMain.handle('dev:rclick', async (e, x, y) => {
       const t = tabs && tabs.active;
       if (!t) return { ok: false };

@@ -172,6 +172,16 @@ contextBridge.exposeInMainWorld('hz', {
     markdown: () => invoke('page:markdown'),
     pdf: () => invoke('page:pdf')
   },
+  wp: {
+    countries: () => invoke('wp:countries'),
+    open: o => invoke('wp:open', o),
+    nav: (id, url) => invoke('wp:nav', id, url),
+    cmd: (id, c, a) => invoke('wp:cmd', id, c, a),
+    country: (id, code) => invoke('wp:country', id, code),
+    state: id => invoke('wp:state', id),
+    stop: id => invoke('wp:stop', id),
+    list: () => invoke('wp:list')
+  },
   mail: {
     providers: () => invoke('mail:providers'),
     gen: o => invoke('mail:gen', o),
@@ -193,6 +203,7 @@ contextBridge.exposeInMainWorld('hz', {
     resize: (w, h) => invoke('dev:resize', w, h),
     probe: () => invoke('dev:probe'),
     drag: (x, y, dx, dy) => invoke('dev:drag', x, y, dx, dy),
+    tclick: (x, y) => invoke('dev:tclick', x, y),
     rclick: (x, y) => invoke('dev:rclick', x, y)
   }
 });

@@ -153,5 +153,9 @@
   "set.cdp.port": "連接埠",
   "set.cdp.endpoint": "端點",
   "set.cdp.note": "僅繫結 127.0.0.1。經 ws://127.0.0.1:<連接埠>/devtools/browser 或 http://127.0.0.1:<連接埠>/json 接入——Runtime.enable 僅確認不執行（隱身面保持）。",
-  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })",
+  "wp.sec": "住宅代理（Shifter 網頁代理）",
+  "wp.desc": "整分頁流量走所選國家住宅出口 IP（移植 scramjet 泳道）。首次連線需人工點一次驗證；每連線約 30 分鐘，期間切換國家免費。",
+  "wp.url": "example.com",
+  "wp.open": "開啟"
 }

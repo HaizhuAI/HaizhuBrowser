@@ -2,6 +2,25 @@
 
 All notable changes to HaizhuBrowser / 海柱浏览器 are documented here.
 
+## [1.11.0] — 2025-11-16
+
+### Added / 新增 — Shifter 住宅代理移植（`src/main/webproxy.js`）
+
+逆向 `shifter.io/cn/web-proxy`（客户端 scramjet + bare-mux + wisp 架构），将其免费网页住宅代理移植为原生标签级会话——选国家即得该国住宅出口 IP，标签内全部流量（含子资源/重定向/链接点击/表单提交）由 scramjet 重写经 wisp 隧道走住宅池：
+
+- **协议复刻**——`/api/v1/config`（120 国 + siteKey + runtimeOrigin）→ `POST /sessions`（reCAPTCHA v2 换 credential）→ `session/tickets`（一次性 ticket）→ `web.p.shifter.io/index.html` 运行时 iframe + `channel`/`command` postMessage 桥（`start/go/back/forward/reload`，入方向 `ready/loading/loaded/url/proxy-failure`）；凭证 localStorage 持久化、会话约 30 分钟、`session/country` 切国 + 运行时重建、`session/reconnect`+`proxy-failure` 自愈重连、SW MessagePort 出借流兼容
+- **会话生命周期**——boot→config→credential 复用/新建→ticket→ready 排队 `pendingUrl`（复刻官方时序，防 start 早发丢消息）→connecting→loaded；`pendingUrl` 队列、国家切换 teardown+remount、会话过期自动重引导（401/SESSION_ENDED→清凭证→重进验证流）、api 15s 超时、cmd 25s race、state 8s 兜底防挂死
+- **标签内原生代理 UX**——注入式顶栏（国旗/120 国下拉/当前 URL/前进后退刷新）、reCAPTCHA 验证卡片遮罩（zh/en 随浏览器语言）、外框导航经 `will-navigate` 改写进代理泳道（地址栏输入的网址直接走住宅出口）
+- **多表面接线**——面板代理页「住宅代理」区块（URL+国家+开启+状态+停止），四语言；MCP +7 工具（共 71）：`webproxy_countries/open/nav/country/cmd/state/stop`；AI Agent +4：`webproxy_open/nav/state/stop`；预加载 `hz.wp.*`
+
+### 实测（打包产物）
+config 120 国 ✓ → reCAPTCHA 验证 → session → ticket → runtime ready → `go navigated to ipinfo.io` → `loaded`（scramjet+wisp 全链路）；国家切换触发 session/country + 运行时重建 ✓；会话过期 → "Browsing session ended" → 自动重引导 ✓
+
+### 诚实边界
+- 免费产品是**会话式住宅代理**（scramjet 重写泳道），不暴露裸 CONNECT 代理端口——全局流量按标签会话走出口，多代理标签可并存
+- 首次会话需在标签内完成一次 reCAPTCHA 人机验证（与原站一致：住宅 IP 下一次点击勾选，机房 IP 可能出图片挑战）；会话期约 30 分钟，credential 期内免重验
+- 代理出口质量/速度由 Shifter 住宅池决定，非本项目可控面
+
 ## [1.10.0] — 2025-11-11
 
 ### Added / 新增 — Obscura 精华移植（h4ckf0r0day/obscura 调研后选择性吸收）

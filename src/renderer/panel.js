@@ -210,7 +210,41 @@ $('#extList').addEventListener('click', async e => {
 });
 
 // ---------- proxy ----------
+async function loadWp() {
+  try {
+    const { countries } = await hz.wp.countries();
+    const sel = $('#wpCountry');
+    if (!sel.options.length) {
+      const saved = await hz.settings.get('wp.country') || 'us';
+      sel.innerHTML = countries.map(c => `<option value="${esc(c.code)}" ${c.code === saved ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+    }
+    const list = await hz.wp.list();
+    $('#wpTabs').innerHTML = list.map(t => `
+      <div class="row"><span class="badge b">${esc(t.country)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.url)}">${esc(t.url)}</span>
+      <button data-wp-state="${t.tabId}">State</button>
+      <button data-wp-stop="${t.tabId}">Stop</button></div>`).join('') || '<div class="dim">no proxy tabs</div>';
+  } catch (e) {
+    $('#wpTabs').innerHTML = `<div class="dim err">${esc(e.message)}</div>`;
+  }
+}
+$('#wpOpen').onclick = async () => {
+  const country = $('#wpCountry').value, url = $('#wpUrl').value.trim();
+  if (!url) return;
+  hz.settings.set('wp.country', country);
+  $('#wpUrl').value = '';
+  const r = await hz.wp.open({ url, country });
+  setTimeout(loadWp, 800);
+  return r;
+};
+$('#wpTabs').addEventListener('click', async e => {
+  const st = e.target.closest('[data-wp-state]');
+  const sp = e.target.closest('[data-wp-stop]');
+  if (st) alert(JSON.stringify(await hz.wp.state(+st.dataset.wpState), null, 2));
+  if (sp) { await hz.wp.stop(+sp.dataset.wpStop); loadWp(); }
+});
 async function loadPx() {
+  loadWp();
   const { profiles, active } = await hz.proxy.list();
   const all = [{ id: 'direct', name: 'Direct (no proxy)', mode: 'direct' }, { id: 'system', name: 'System proxy', mode: 'system' }, ...profiles];
   $('#pxActive').innerHTML = all.map(p => `<option value="${esc(p.id)}" ${p.id === active ? 'selected' : ''}>${esc(p.name || p.id)} ${p.mode !== 'direct' && p.mode !== 'system' ? '(' + esc(p.mode + ' ' + (p.host || '') + ':' + (p.port || '')) + ')' : ''}</option>`).join('');

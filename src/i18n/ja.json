@@ -153,5 +153,9 @@
   "set.cdp.port": "ポート",
   "set.cdp.endpoint": "エンドポイント",
   "set.cdp.note": "127.0.0.1 のみにバインド。ws://127.0.0.1:<port>/devtools/browser または http://127.0.0.1:<port>/json で接続——Runtime.enable は確認のみで実行しません（ステルス維持）。",
-  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })",
+  "wp.sec": "レジデンシャル Web プロキシ（Shifter）",
+  "wp.desc": "タブ全体の通信が選択国の住宅 IP から出ます（scramjet レーン移植）。初回のみ人間確認を 1 回クリック。1 セッション約 30 分、国の切替は無料。",
+  "wp.url": "example.com",
+  "wp.open": "開く"
 }

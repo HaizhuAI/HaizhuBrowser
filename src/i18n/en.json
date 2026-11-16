@@ -153,5 +153,9 @@
   "set.cdp.port": "Port",
   "set.cdp.endpoint": "Endpoint",
   "set.cdp.note": "Bound to 127.0.0.1. Attach via ws://127.0.0.1:<port>/devtools/browser or http://127.0.0.1:<port>/json — Runtime.enable is acknowledged but never executed (stealth preserved).",
-  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })"
+  "set.cdp.example": "puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9229/devtools/browser' })",
+  "wp.sec": "Residential web proxy (Shifter)",
+  "wp.desc": "Tab-global proxying through a residential exit IP in the chosen country (ported scramjet lane). First session asks for one human verification tick; ~30 min per session, country switches are free.",
+  "wp.url": "example.com",
+  "wp.open": "Open"
 }

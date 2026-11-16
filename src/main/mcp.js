@@ -124,7 +124,14 @@ const SCHEMAS = [
   { name: 'page_pdf', desc: 'Export page to PDF (printToPDF). Returns base64.', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, printBackground: { type: 'boolean' }, landscape: { type: 'boolean' }, pageSize: { type: 'string' } } } },
   { name: 'headless_markdown', desc: 'Extract markdown from a headless page', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
   { name: 'headless_pdf', desc: 'Export a headless page to PDF → base64', inputSchema: { type: 'object', properties: { id: { type: 'string' }, printBackground: { type: 'boolean' } }, required: ['id'] } },
-  { name: 'bulk_fetch', desc: 'obscura `scrape` equivalent — fetch many URLs in parallel on the lean headless lane; returns [{url,title,markdown|text,ms|error}]. Private IPs blocked unless allowPrivate.', inputSchema: { type: 'object', properties: { urls: { type: 'array', items: { type: 'string' } }, concurrency: { type: 'number' }, timeout: { type: 'number' }, format: { type: 'string', enum: ['markdown', 'text'] }, allowPrivate: { type: 'boolean' } }, required: ['urls'] } }
+  { name: 'bulk_fetch', desc: 'obscura `scrape` equivalent — fetch many URLs in parallel on the lean headless lane; returns [{url,title,markdown|text,ms|error}]. Private IPs blocked unless allowPrivate.', inputSchema: { type: 'object', properties: { urls: { type: 'array', items: { type: 'string' } }, concurrency: { type: 'number' }, timeout: { type: 'number' }, format: { type: 'string', enum: ['markdown', 'text'] }, allowPrivate: { type: 'boolean' } }, required: ['urls'] } },
+  { name: 'webproxy_countries', desc: 'List Shifter residential web-proxy exit countries (~120)', inputSchema: { type: 'object', properties: {} } },
+  { name: 'webproxy_open', desc: 'Open a residential-proxy browsing tab (ported shifter web proxy): all traffic in that tab exits from a residential IP in `country` (2-letter code). First session needs one human reCAPTCHA tick in the tab (~30 min session, country switching is free afterwards).', inputSchema: { type: 'object', properties: { url: { type: 'string' }, country: { type: 'string' } }, required: ['url'] } },
+  { name: 'webproxy_nav', desc: 'Navigate a web-proxy tab to a new URL (through the residential exit)', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, url: { type: 'string' } }, required: ['tabId', 'url'] } },
+  { name: 'webproxy_country', desc: 'Switch a web-proxy tab to another exit country', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, country: { type: 'string' } }, required: ['tabId', 'country'] } },
+  { name: 'webproxy_cmd', desc: 'back | forward | reload on a web-proxy tab', inputSchema: { type: 'object', properties: { tabId: { type: 'number' }, command: { type: 'string', enum: ['back', 'forward', 'reload'] } }, required: ['tabId', 'command'] } },
+  { name: 'webproxy_state', desc: 'Proxy tab state: phase, proxied url, country, session seconds remaining, needsCaptcha', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } }, required: ['tabId'] } },
+  { name: 'webproxy_stop', desc: 'End the proxy session and close the tab', inputSchema: { type: 'object', properties: { tabId: { type: 'number' } }, required: ['tabId'] } }
 ];
 
 class McpServer {
@@ -314,7 +321,14 @@ class McpServer {
       headless_fill: async () => c.headless.fill(args.id, args.selector, args.value),
       fast_mode: () => { const t = this.tab(args); const on = c.headless.setFast(t.wc.session, !!args.on); return { fast: on }; },
       headless_markdown: async () => c.headless.markdown(args.id),
-      bulk_fetch: async () => c.headless.bulkFetch(args.urls, { concurrency: args.concurrency, timeout: args.timeout, format: args.format || 'markdown', allowPrivate: !!args.allowPrivate })
+      bulk_fetch: async () => c.headless.bulkFetch(args.urls, { concurrency: args.concurrency, timeout: args.timeout, format: args.format || 'markdown', allowPrivate: !!args.allowPrivate }),
+      webproxy_countries: async () => (await c.webproxy.countries()).countries,
+      webproxy_open: async () => c.webproxy.open({ url: args.url, country: args.country || 'us' }),
+      webproxy_nav: async () => c.webproxy.nav(args.tabId, args.url),
+      webproxy_country: async () => c.webproxy.setCountry(args.tabId, args.country),
+      webproxy_cmd: async () => c.webproxy.cmd(args.tabId, args.command),
+      webproxy_state: async () => c.webproxy.state(args.tabId),
+      webproxy_stop: async () => c.webproxy.stop(args.tabId)
     };
     if (BROWSER[name]) return text(await BROWSER[name](args));
     if (name === 'headless_shot') {

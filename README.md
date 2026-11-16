@@ -61,6 +61,7 @@ A high-performance, developer- and geek-oriented **all-in-one browser** — pack
 | **Temp mail** | Disposable inboxes for sign-up flows — **Emailnator (real @gmail.com pool, bypasses disposable-domain filters)**, mail.tm, TempMail+; OTP + confirm-link auto-extraction, wait-for-mail poller; panel UI + AI/MCP tools | — |
 | **Headless lane** | Lightpanda-style lean automation: offscreen `WebContents` pool (no paint/raster/decode, 1fps), images/fonts/media + built-in tracker endpoints blocked at wire level, SSRF private-IP guard, parallel `bulk_fetch` — plus `fast_mode` for visible tabs | — |
 | **CDP / Puppeteer** | Chrome DevTools Protocol endpoint (default `ws://127.0.0.1:9229/devtools/browser`) — Puppeteer / Playwright `connectOverCDP` / raw CDP drive real tabs + headless lane, drop-in for headless-Chrome. `Runtime.enable` acknowledged-not-executed (stealth preserved); no `--remote-debugging-port` | — |
+| **Residential proxy** | Reverse-ported Shifter free web proxy (scramjet+bare-mux+wisp): pick a country → tab-level residential exit IP, all tab traffic rewritten through the residential pool; 120 countries, free country switching, ~30 min sessions, omnibox URLs auto-enter the proxied lane; one human check on first session | — |
 | **Markdown / PDF** | `page_markdown` (obscura getMarkdown equivalent: article root → GitHub-flavored markdown) + `page_pdf`/`headless_pdf` (`printToPDF` → base64) on both visible and headless lanes | — |
 | **Privacy** | Zero telemetry, zero ads, minimal permissions — verified against the Solo/Edge telemetry stacks we ripped out | Same |
 
@@ -106,7 +107,7 @@ nothing is reachable off-machine.
   } } }
   ```
 
-**Tool surface (64 tools):** `list_tabs` / `new_tab` / `close_tab` /
+**Tool surface (71 tools):** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate` (omnibox-style URL + search normalization) /
 `get_url` / `page_text` / `page_html` / `page_markdown` / `page_pdf` /
 `dom_query` / `click` / `fill` /
@@ -120,6 +121,8 @@ nothing is reachable off-machine.
 `stealth_audit` / `human_click` / `human_type` / `solve_turnstile` /
 `tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
 `tempmail_delete_message` / `tempmail_extend` / `tempmail_wait` /
+`webproxy_countries` / `webproxy_open` / `webproxy_nav` / `webproxy_country` /
+`webproxy_cmd` / `webproxy_state` / `webproxy_stop` /
 `headless_open` / `headless_list` / `headless_close` / `headless_nav` /
 `headless_eval` / `headless_text` / `headless_html` / `headless_markdown` /
 `headless_pdf` / `headless_query` /

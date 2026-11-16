@@ -61,6 +61,7 @@
 | **临时邮箱** | 注册登录用一次性收件箱——**Emailnator（真 @gmail.com 池，绕过一次性域名过滤）**、mail.tm、TempMail+；自动抽取验证码 + 确认链接，等信轮询原语；面板 UI + AI/MCP 工具 | — |
 | **无头泳道** | lightpanda 式轻量自动化：offscreen `WebContents` 池（零绘制/光栅/解码，1fps），线级拦截图片/字体/媒体 + 内建 ~60 追踪端点，SSRF 私网守卫，并行 `bulk_fetch` 批量抓取 + 可视标签 `fast_mode` | — |
 | **CDP / Puppeteer** | Chrome DevTools 协议端点（默认 `ws://127.0.0.1:9229/devtools/browser`）——Puppeteer / Playwright `connectOverCDP` / 原生 CDP 客户端直接驱动真实标签与无头泳道，无缝替代 headless Chrome。`Runtime.enable` 仅确认不执行（隐身面保持）；不开 `--remote-debugging-port` | — |
+| **住宅代理** | 逆向移植 Shifter 免费网页代理（scramjet+bare-mux+wisp）：选国家 → 标签级住宅出口 IP，标签内全流量重写走住宅池；120 国、切国免费、~30min 会话、地址栏网址自动进入代理泳道；首次会话一次人机验证 | — |
 | **Markdown / PDF** | `page_markdown`（obscura getMarkdown 等价物：正文根→GitHub 风格 markdown，LLM 直接读）+ `page_pdf`/`headless_pdf`（`printToPDF` → base64），可视/无头双泳道可用 | — |
 | **隐私** | 零遥测、零广告、最小权限——剔除 Solo/Edge 同款遥测与广告注入栈 | 同 |
 
@@ -103,7 +104,7 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
   } } }
   ```
 
-**工具面（64 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
+**工具面（71 个工具）：** `list_tabs` / `new_tab` / `close_tab` /
 `activate_tab` / `navigate`（地址栏式 URL+搜索词归一化）/ `get_url` /
 `page_text` / `page_html` / `page_markdown` / `page_pdf` /
 `dom_query` / `click` / `fill` / `run_js` /
@@ -116,6 +117,8 @@ Cookie 读写、DOM 自动化、指纹环境管理——与内置 AI Agent 同�
 `stealth_audit` / `human_click` / `human_type` / `solve_turnstile` /
 `tempmail_generate` / `tempmail_accounts` / `tempmail_inbox` / `tempmail_read` /
 `tempmail_delete_message` / `tempmail_extend` / `tempmail_wait` /
+`webproxy_countries` / `webproxy_open` / `webproxy_nav` / `webproxy_country` /
+`webproxy_cmd` / `webproxy_state` / `webproxy_stop` /
 `headless_open` / `headless_list` / `headless_close` / `headless_nav` /
 `headless_eval` / `headless_text` / `headless_html` / `headless_markdown` /
 `headless_pdf` / `headless_query` /

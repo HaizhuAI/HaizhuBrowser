@@ -138,7 +138,11 @@ const TOOLS = [
   { name: 'page_markdown', desc: 'Extract page as clean markdown (headings/links/lists/code) — best for LLM reading', params: {} },
   { name: 'page_pdf', desc: 'Export page as PDF → base64', params: {} },
   { name: 'headless_markdown', desc: 'Markdown extraction on a headless page', params: { id: 'string' } },
-  { name: 'bulk_fetch', desc: 'Fetch many URLs in parallel on the headless lane → [{url,title,markdown}] (obscura scrape)', params: { urls: 'array', concurrency: 'number?' } }
+  { name: 'bulk_fetch', desc: 'Fetch many URLs in parallel on the headless lane → [{url,title,markdown}] (obscura scrape)', params: { urls: 'array', concurrency: 'number?' } },
+  { name: 'webproxy_open', desc: 'Open a residential-proxy tab (ported shifter web proxy): all traffic exits via a residential IP in `country` (2-letter). First use needs one human captcha tick in the tab.', params: { url: 'string', country: 'string?' } },
+  { name: 'webproxy_nav', desc: 'Navigate a web-proxy tab through the residential exit', params: { tabId: 'number', url: 'string' } },
+  { name: 'webproxy_state', desc: 'Web-proxy tab state (phase/url/country/needsCaptcha)', params: { tabId: 'number' } },
+  { name: 'webproxy_stop', desc: 'End web-proxy session and close the tab', params: { tabId: 'number' } }
 ];
 
 const AGENT_SYSTEM = `You are Haizhu Agent, an AI operator embedded in a developer browser.
@@ -234,6 +238,10 @@ class AIModule {
       case 'page_pdf': { const b = await wc.printToPDF({ printBackground: true }); return { bytes: b.length, base64: b.toString('base64') }; }
       case 'headless_markdown': return await c.headless.markdown(Number(args.id));
       case 'bulk_fetch': return await c.headless.bulkFetch(args.urls || [], { concurrency: args.concurrency || 4 });
+      case 'webproxy_open': return await c.webproxy.open({ url: args.url, country: args.country || 'us' });
+      case 'webproxy_nav': return await c.webproxy.nav(args.tabId, args.url);
+      case 'webproxy_state': return await c.webproxy.state(args.tabId);
+      case 'webproxy_stop': return await c.webproxy.stop(args.tabId);
       default: return 'unknown tool ' + name;
     }
   }

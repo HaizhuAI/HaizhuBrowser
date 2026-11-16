@@ -71,6 +71,15 @@
     </div>
     <!-- PROXY -->
     <div class="page" id="p-px">
+      <h3 class="sec" data-i18n="wp.sec">Residential web proxy (Shifter)</h3>
+      <p class="dim" data-i18n="wp.desc">Tab-global proxying through a residential exit IP in the chosen country (ported scramjet lane). First session asks for one human verification tick; ~30 min per session, country switches are free.</p>
+      <div class="row">
+        <select id="wpCountry" style="flex:1"></select>
+        <input id="wpUrl" data-i18n-ph="wp.url" placeholder="example.com" style="flex:2">
+        <button id="wpOpen" data-i18n="wp.open">Open</button>
+      </div>
+      <div id="wpTabs"></div>
+      <h3 class="sec" data-i18n="nav.proxy">HTTP proxy</h3>
       <div class="row"><select id="pxActive" style="flex:1"></select><button id="pxApply">Apply</button></div>
       <h3 class="sec">Profiles</h3><div id="pxList"></div>
       <h3 class="sec">Add profile</h3>
